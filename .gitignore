@@ -1,0 +1,4 @@
+output/
+testpdf/
+__pycache__/
+*.pyc

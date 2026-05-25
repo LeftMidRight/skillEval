@@ -1,0 +1,16 @@
+las:
+  base_url: "https://operator.las.cn-shanghai.volces.com/api/v1"
+  api_key: "${LAS_API_KEY}"
+  operator_id: "las_pdf_parse_doubao"
+  operator_version: "v1"
+  timeout: 60
+
+request:
+  url: ""
+  task_id: ""
+  wait: false
+  max_polls: 20
+  poll_interval: 5.0
+
+output:
+  path: "output/financial_report/las_response.json"
