@@ -54,6 +54,7 @@ def main() -> int:
 
     markdown_path = config["output"].get("markdown_path")
     json_path = config["output"].get("json_path")
+    numbers_path = config["output"].get("numbers_path")
     markdown = extract_markdown(result)
     if markdown_path and markdown:
         if config.get("post_process", {}).get("merge_cross_page_tables"):
@@ -78,6 +79,15 @@ def main() -> int:
             json_output_path.parent.mkdir(parents=True, exist_ok=True)
             json_output_path.write_text(structured_json, encoding="utf-8")
             print(f"Wrote structured JSON to {json_output_path}")
+
+        if numbers_path:
+            from number_extractor import extract_numbers_from_markdown
+            numbers_data = extract_numbers_from_markdown(markdown)
+            numbers_output_path = Path(numbers_path)
+            numbers_output_path.parent.mkdir(parents=True, exist_ok=True)
+            numbers_output_path.write_text(
+                json.dumps(numbers_data, ensure_ascii=False, indent=2), encoding="utf-8")
+            print(f"Wrote extracted numbers to {numbers_output_path}")
 
     elif markdown_path:
         print("No markdown found in LAS response; markdown file was not written.")
