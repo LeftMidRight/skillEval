@@ -53,6 +53,7 @@ def main() -> int:
     print(f"Wrote LAS response to {output_path}")
 
     markdown_path = config["output"].get("markdown_path")
+    json_path = config["output"].get("json_path")
     markdown = extract_markdown(result)
     if markdown_path and markdown:
         if config.get("post_process", {}).get("merge_cross_page_tables"):
@@ -64,6 +65,20 @@ def main() -> int:
         markdown_output_path.parent.mkdir(parents=True, exist_ok=True)
         markdown_output_path.write_text(markdown, encoding="utf-8")
         print(f"Wrote LAS markdown to {markdown_output_path}")
+
+        if json_path:
+            from structured_output import build_structured_output
+            page_count = len(result.get("poll_response", {}).get("data", {}).get("detail", []))
+            structured_json = build_structured_output(markdown, metadata={
+                "pdf_url": pdf_url or "",
+                "task_id": task_id,
+                "total_pages": page_count or None,
+            })
+            json_output_path = Path(json_path)
+            json_output_path.parent.mkdir(parents=True, exist_ok=True)
+            json_output_path.write_text(structured_json, encoding="utf-8")
+            print(f"Wrote structured JSON to {json_output_path}")
+
     elif markdown_path:
         print("No markdown found in LAS response; markdown file was not written.")
 

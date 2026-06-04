@@ -15,6 +15,7 @@ request:
 output:
   path: "output/financial_report/las_response.json"
   markdown_path: "output/financial_report/report.md"
+  json_path: "output/financial_report/report_structured.json"
 
 post_process:
   merge_cross_page_tables: true
