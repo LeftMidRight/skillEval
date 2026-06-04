@@ -30,6 +30,9 @@ class TableInfo:
     cols: int
     has_thead: bool
     headers: list[str] = field(default_factory=list)
+    header_rows: int = 0  # thead 中的行数（多级表头）
+    merged_cells: list[dict[str, Any]] = field(default_factory=list)
+    has_section_headers: bool = False  # 是否有分组标题行
 
 
 @dataclass
@@ -63,21 +66,76 @@ def _parse_table(html: str) -> TableInfo:
     rows = len(re.findall(r"<tr>", html))
     has_thead = "<thead>" in html
     headers: list[str] = []
+    header_rows = 0
+    merged_cells: list[dict[str, Any]] = []
+    has_section_headers = False
+    cols = 0
+
+    # 解析 thead（多级表头）
     thead_match = re.search(r"<thead>(.*?)</thead>", html, re.DOTALL)
     if thead_match:
-        th_texts = re.findall(r"<th[^>]*>(.*?)</th>", thead_match.group(1), re.DOTALL)
+        thead_html = thead_match.group(1)
+        header_rows = len(re.findall(r"<tr>", thead_html))
+
+        # 提取表头文本（扁平化，所有 th）
+        th_texts = re.findall(r"<th[^>]*>(.*?)</th>", thead_html, re.DOTALL)
         headers = [re.sub(r"<[^>]+>", "", t).strip() for t in th_texts]
 
-    # 列数：取 thead 或第一个 tbody 行的 td+colspan
-    first_tr = re.search(r"<tr>(.*?)</tr>", html, re.DOTALL)
-    cols = 0
-    if first_tr:
-        for cell in re.finditer(r"<(td|th)([^>]*)>", first_tr.group(1)):
+    # 列数：取 thead 最后一行或第一个 tbody 行的 td+colspan
+    calc_html = thead_match.group(1) if thead_match else html
+    last_thead_tr = None
+    for tr in re.finditer(r"<tr>(.*?)</tr>", calc_html, re.DOTALL):
+        last_thead_tr = tr.group(1)
+    if last_thead_tr is None:
+        first_tr = re.search(r"<tr>(.*?)</tr>", html, re.DOTALL)
+        if first_tr:
+            last_thead_tr = first_tr.group(1)
+
+    if last_thead_tr:
+        for cell in re.finditer(r"<(td|th)([^>]*)>", last_thead_tr):
             attrs = cell.group(2)
             cm = re.search(r'colspan\s*=\s*"(\d+)"', attrs)
             cols += int(cm.group(1)) if cm else 1
 
-    return TableInfo(html=html, rows=rows, cols=cols, has_thead=has_thead, headers=headers)
+    # 解析合并单元格（所有行中的 colspan/rowspan > 1）
+    row_idx = 0
+    all_trs = list(re.finditer(r"<tr>(.*?)</tr>", html, re.DOTALL))
+    for tr in all_trs:
+        col_idx = 0
+        for cell in re.finditer(r"<(td|th)([^>]*)>(.*?)</\1>", tr.group(1), re.DOTALL):
+            attrs = cell.group(2)
+            cspan = int(re.search(r'colspan\s*=\s*"(\d+)"', attrs).group(1)
+                       ) if re.search(r'colspan\s*=\s*"(\d+)"', attrs) else 1
+            rspan = int(re.search(r'rowspan\s*=\s*"(\d+)"', attrs).group(1)
+                       ) if re.search(r'rowspan\s*=\s*"(\d+)"', attrs) else 1
+            cell_text = re.sub(r"<[^>]+>", "", cell.group(3)).strip()
+
+            if cspan > 1 or rspan > 1:
+                merged_cells.append({
+                    "row": row_idx,
+                    "col": col_idx,
+                    "rowspan": rspan,
+                    "colspan": cspan,
+                    "text": cell_text,
+                })
+
+            # 检测分组标题行：单单元格 + colspan 覆盖全表
+            if cspan == cols and cols > 0 and not has_section_headers:
+                has_section_headers = True
+
+            col_idx += cspan
+        row_idx += 1
+
+    return TableInfo(
+        html=html,
+        rows=rows,
+        cols=cols,
+        has_thead=has_thead,
+        headers=headers,
+        header_rows=header_rows,
+        merged_cells=merged_cells,
+        has_section_headers=has_section_headers,
+    )
 
 
 # ---------------------------------------------------------------------------
