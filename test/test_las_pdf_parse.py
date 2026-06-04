@@ -13,6 +13,7 @@ PARSER_PATH = PROJECT_ROOT / "skill" / "script" / "las_pdf_parse.py"
 TEMP_CONFIG_PATH = SCRIPT_DIR / ".las_test_config.yaml"
 OUTPUT_DIR = PROJECT_ROOT / "output" / "las_pdf_parse_sample"
 OUTPUT_PATH = OUTPUT_DIR / "las_test_response.json"
+MARKDOWN_PATH = OUTPUT_DIR / "las_test_response.md"
 PDF_SAMPLE_URL = (
     "https://las-ai-cn-shanghai-online.tos-cn-shanghai.volces.com/"
     "operator_cards_serving/public/online/las_pdf_parse_doubao/v1/pdf-sample.pdf"
@@ -38,6 +39,7 @@ def main() -> int:
 
         response = json.loads(OUTPUT_PATH.read_text(encoding="utf-8"))
         assert_success_response(response)
+        assert_markdown_output()
         task_id = response["task_id"]
         billable_pages = response["poll_response"]["data"].get("billable_pages")
         print(f"LAS PDF parse test passed. task_id={task_id}, billable_pages={billable_pages}")
@@ -76,6 +78,9 @@ def write_test_config() -> None:
         if section == "output" and stripped.startswith("path:"):
             output.append(f'  path: "{OUTPUT_PATH.as_posix()}"')
             continue
+        if section == "output" and stripped.startswith("markdown_path:"):
+            output.append(f'  markdown_path: "{MARKDOWN_PATH.as_posix()}"')
+            continue
 
         output.append(line)
 
@@ -96,6 +101,14 @@ def assert_success_response(response: dict) -> None:
         raise AssertionError(f"task is not completed: {poll_metadata}")
     if not data.get("markdown"):
         raise AssertionError("poll response does not contain markdown")
+
+
+def assert_markdown_output() -> None:
+    if not MARKDOWN_PATH.exists():
+        raise AssertionError(f"markdown output was not written: {MARKDOWN_PATH}")
+    markdown = MARKDOWN_PATH.read_text(encoding="utf-8")
+    if "# PDF 示例" not in markdown:
+        raise AssertionError("markdown output does not contain expected sample heading")
 
 
 if __name__ == "__main__":

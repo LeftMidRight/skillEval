@@ -51,6 +51,22 @@ def main() -> int:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"Wrote LAS response to {output_path}")
+
+    markdown_path = config["output"].get("markdown_path")
+    markdown = extract_markdown(result)
+    if markdown_path and markdown:
+        if config.get("post_process", {}).get("merge_cross_page_tables"):
+            from table_merger import merge_cross_page_tables
+            markdown = merge_cross_page_tables(markdown)
+            print("Post-processed: merged cross-page tables, cleaned page noise")
+
+        markdown_output_path = Path(markdown_path)
+        markdown_output_path.parent.mkdir(parents=True, exist_ok=True)
+        markdown_output_path.write_text(markdown, encoding="utf-8")
+        print(f"Wrote LAS markdown to {markdown_output_path}")
+    elif markdown_path:
+        print("No markdown found in LAS response; markdown file was not written.")
+
     return 0
 
 
@@ -66,6 +82,17 @@ def poll_until_done(config: dict[str, Any], task_id: str) -> dict[str, Any]:
         if attempt < max_polls - 1:
             time.sleep(poll_interval)
     return latest
+
+
+def extract_markdown(result: dict[str, Any]) -> str:
+    poll_response = result.get("poll_response", {})
+    if not isinstance(poll_response, dict):
+        return ""
+    data = poll_response.get("data", {})
+    if not isinstance(data, dict):
+        return ""
+    markdown = data.get("markdown", "")
+    return markdown if isinstance(markdown, str) else ""
 
 
 def load_config(path: str) -> dict[str, Any]:
