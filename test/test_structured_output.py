@@ -154,8 +154,16 @@ def test_output_on_real_data():
         assert "table_info" in t
         assert t["table_info"]["rows"] > 0
 
+    # 必须有 table_validation
+    tv = result.get("table_validation")
+    assert tv is not None, "Missing table_validation"
+    assert tv["total_tables"] > 0
+    assert "summary" in tv
+    assert "borderless_high_risk" in tv["summary"]
+
     print(f"  PASS: {result['metadata']['total_elements']} elements, "
-          f"{result['metadata']['element_counts']}")
+          f"{result['metadata']['element_counts']}, "
+          f"validation: {tv['valid_tables']}/{tv['total_tables']} valid")
 
 
 # ---------------------------------------------------------------------------

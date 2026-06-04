@@ -236,6 +236,10 @@ def build_structured_output(
     for el in elements:
         type_counts[el.type] = type_counts.get(el.type, 0) + 1
 
+    # 表格结构校验
+    from table_validator import validate_all_tables
+    validation = validate_all_tables(markdown)
+
     result: dict[str, Any] = {
         "metadata": {
             **(metadata or {}),
@@ -244,6 +248,7 @@ def build_structured_output(
         },
         "elements": [el.to_dict() for el in elements],
         "reading_order": reading_order,
+        "table_validation": validation,
     }
 
     return json.dumps(result, ensure_ascii=False, indent=2)
