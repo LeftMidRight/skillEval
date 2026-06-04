@@ -4,11 +4,10 @@ import argparse
 import json
 import os
 import sys
-import time
 from pathlib import Path
 from typing import Any
 
-from las_client import LasApiError, extract_task_id, poll_task, submit_pdf, task_status
+from las_client import LasApiError, extract_task_id, poll_task, poll_until_done, submit_pdf, task_status
 from error_handler import (
     ErrorCode,
     OperationResult,
@@ -16,9 +15,6 @@ from error_handler import (
     check_submit_response,
     validate_input,
 )
-
-
-TERMINAL_STATUSES = {"COMPLETED", "FAILED", "CANCELED", "CANCELLED"}
 
 
 def main() -> int:
@@ -182,20 +178,6 @@ def _save_warnings(op_result: OperationResult, output_path: Path) -> None:
 def _print_errors(op_result: OperationResult) -> None:
     for err in op_result.errors:
         print(f"  [ERROR {err['code']}] {err['message']}: {err['detail']}", file=sys.stderr)
-
-
-def poll_until_done(config: dict[str, Any], task_id: str) -> dict[str, Any]:
-    max_polls = int(config["request"].get("max_polls", 20))
-    poll_interval = float(config["request"].get("poll_interval", 5.0))
-    latest: dict[str, Any] = {}
-
-    for attempt in range(max_polls):
-        latest = poll_task(config, task_id)
-        if task_status(latest) in TERMINAL_STATUSES:
-            return latest
-        if attempt < max_polls - 1:
-            time.sleep(poll_interval)
-    return latest
 
 
 def extract_markdown(result: dict[str, Any]) -> str:

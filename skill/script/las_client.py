@@ -75,6 +75,25 @@ def task_status(response: dict[str, Any]) -> str:
     return str(metadata.get("task_status", "")).upper()
 
 
+def poll_until_done(
+    config: dict[str, Any],
+    task_id: str,
+    max_polls: int = 20,
+    poll_interval: float = 5.0,
+) -> dict[str, Any]:
+    """轮询直到任务终止或达到最大轮询次数。"""
+    import time
+
+    latest: dict[str, Any] = {}
+    for attempt in range(max_polls):
+        latest = poll_task(config, task_id)
+        if task_status(latest) in {"COMPLETED", "FAILED", "CANCELED", "CANCELLED"}:
+            return latest
+        if attempt < max_polls - 1:
+            time.sleep(poll_interval)
+    return latest
+
+
 def load_json(raw: bytes, status_code: int) -> dict[str, Any]:
     text = raw.decode("utf-8", errors="replace")
     try:
