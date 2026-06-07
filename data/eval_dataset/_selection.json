@@ -35,7 +35,7 @@
       "count": 3,
       "codes": ["600569", "603421", "603707"],
       "synthetic": true,
-      "note": "XBRL 数据反推生成，2 栏报纸版式；与 borderless_tables 中合成部分共享公司代码"
+      "note": "XBRL 数据反推生成，2 栏报纸版式含栏间竖线分隔符；GT 即 XBRL 本身"
     }
   }
 }
