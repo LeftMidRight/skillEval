@@ -1,0 +1,122 @@
+{
+  "scene": "cross_page_tables",
+  "title": "跨页表格",
+  "source": "FinAR-Bench",
+  "ground_truth": "XBRL (FinAR-Bench dev.txt/test.txt)",
+  "selection_signal": "cross_page_score（连续表格页跨度）最高",
+  "primary_metric": "cross_page_score",
+  "count": 10,
+  "items": [
+    {
+      "code": "603256",
+      "file": "603256.pdf",
+      "pages": 36,
+      "numeric_density": 37.4,
+      "cross_page_score": 23,
+      "bracket_negatives": 61,
+      "units": [
+        "万元",
+        "元"
+      ]
+    },
+    {
+      "code": "603299",
+      "file": "603299.pdf",
+      "pages": 19,
+      "numeric_density": 44.2,
+      "cross_page_score": 19,
+      "bracket_negatives": 7,
+      "units": [
+        "元"
+      ]
+    },
+    {
+      "code": "600933",
+      "file": "600933.pdf",
+      "pages": 16,
+      "numeric_density": 55.4,
+      "cross_page_score": 15,
+      "bracket_negatives": 0,
+      "units": [
+        "元"
+      ]
+    },
+    {
+      "code": "601012",
+      "file": "601012.pdf",
+      "pages": 14,
+      "numeric_density": 66.3,
+      "cross_page_score": 14,
+      "bracket_negatives": 0,
+      "units": [
+        "元"
+      ]
+    },
+    {
+      "code": "603955",
+      "file": "603955.pdf",
+      "pages": 14,
+      "numeric_density": 57.9,
+      "cross_page_score": 13,
+      "bracket_negatives": 0,
+      "units": [
+        "元"
+      ]
+    },
+    {
+      "code": "600100",
+      "file": "600100.pdf",
+      "pages": 14,
+      "numeric_density": 79.1,
+      "cross_page_score": 12,
+      "bracket_negatives": 0,
+      "units": [
+        "元"
+      ]
+    },
+    {
+      "code": "600366",
+      "file": "600366.pdf",
+      "pages": 13,
+      "numeric_density": 65.2,
+      "cross_page_score": 12,
+      "bracket_negatives": 0,
+      "units": [
+        "元"
+      ]
+    },
+    {
+      "code": "601222",
+      "file": "601222.pdf",
+      "pages": 13,
+      "numeric_density": 70.9,
+      "cross_page_score": 12,
+      "bracket_negatives": 0,
+      "units": [
+        "元"
+      ]
+    },
+    {
+      "code": "600082",
+      "file": "600082.pdf",
+      "pages": 12,
+      "numeric_density": 55.0,
+      "cross_page_score": 12,
+      "bracket_negatives": 0,
+      "units": [
+        "元"
+      ]
+    },
+    {
+      "code": "600193",
+      "file": "600193.pdf",
+      "pages": 12,
+      "numeric_density": 46.2,
+      "cross_page_score": 12,
+      "bracket_negatives": 0,
+      "units": [
+        "元"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,506 @@
+{
+  "page_counts": {
+    "600064": 10,
+    "600070": 12,
+    "600082": 12,
+    "600083": 11,
+    "600100": 14,
+    "600114": 10,
+    "600130": 8,
+    "600133": 11,
+    "600168": 12,
+    "600193": 12,
+    "600221": 11,
+    "600225": 11,
+    "600229": 10,
+    "600250": 12,
+    "600322": 9,
+    "600336": 11,
+    "600360": 12,
+    "600366": 13,
+    "600392": 12,
+    "600490": 12,
+    "600521": 12,
+    "600545": 10,
+    "600569": 11,
+    "600592": 10,
+    "600597": 8,
+    "600599": 12,
+    "600612": 11,
+    "600619": 12,
+    "600623": 10,
+    "600626": 11,
+    "600658": 12,
+    "600679": 9,
+    "600778": 9,
+    "600779": 11,
+    "600791": 12,
+    "600846": 10,
+    "600916": 12,
+    "600933": 16,
+    "600966": 11,
+    "601009": 11,
+    "601010": 10,
+    "601011": 10,
+    "601012": 14,
+    "601117": 8,
+    "601127": 11,
+    "601222": 13,
+    "601388": 12,
+    "601555": 10,
+    "601678": 11,
+    "601696": 7,
+    "601933": 12,
+    "603037": 11,
+    "603040": 14,
+    "603086": 11,
+    "603108": 12,
+    "603118": 11,
+    "603123": 10,
+    "603155": 12,
+    "603196": 11,
+    "603201": 11,
+    "603228": 11,
+    "603232": 11,
+    "603256": 36,
+    "603299": 19,
+    "603313": 10,
+    "603316": 10,
+    "603322": 10,
+    "603330": 11,
+    "603358": 10,
+    "603365": 8,
+    "603369": 10,
+    "603379": 10,
+    "603398": 12,
+    "603421": 11,
+    "603439": 9,
+    "603569": 10,
+    "603586": 15,
+    "603630": 9,
+    "603633": 12,
+    "603668": 12,
+    "603707": 13,
+    "603726": 12,
+    "603728": 12,
+    "603777": 10,
+    "603798": 11,
+    "603809": 11,
+    "603818": 10,
+    "603883": 12,
+    "603898": 10,
+    "603901": 11,
+    "603908": 12,
+    "603915": 12,
+    "603922": 11,
+    "603955": 14,
+    "603960": 11,
+    "605099": 11,
+    "605123": 12,
+    "605186": 12,
+    "605318": 12,
+    "605588": 12
+  },
+  "cross_page_scores": {
+    "600064": {
+      "page_count": 10,
+      "cross_markers": 0
+    },
+    "600070": {
+      "page_count": 12,
+      "cross_markers": 0
+    },
+    "600082": {
+      "page_count": 12,
+      "cross_markers": 0
+    },
+    "600083": {
+      "page_count": 11,
+      "cross_markers": 0
+    },
+    "600100": {
+      "page_count": 14,
+      "cross_markers": 0
+    },
+    "600114": {
+      "page_count": 10,
+      "cross_markers": 0
+    },
+    "600130": {
+      "page_count": 8,
+      "cross_markers": 0
+    },
+    "600133": {
+      "page_count": 11,
+      "cross_markers": 0
+    },
+    "600168": {
+      "page_count": 12,
+      "cross_markers": 0
+    },
+    "600193": {
+      "page_count": 12,
+      "cross_markers": 0
+    },
+    "600221": {
+      "page_count": 11,
+      "cross_markers": 0
+    },
+    "600225": {
+      "page_count": 11,
+      "cross_markers": 0
+    },
+    "600229": {
+      "page_count": 10,
+      "cross_markers": 0
+    },
+    "600250": {
+      "page_count": 12,
+      "cross_markers": 0
+    },
+    "600322": {
+      "page_count": 9,
+      "cross_markers": 0
+    },
+    "600336": {
+      "page_count": 11,
+      "cross_markers": 0
+    },
+    "600360": {
+      "page_count": 12,
+      "cross_markers": 0
+    },
+    "600366": {
+      "page_count": 13,
+      "cross_markers": 0
+    },
+    "600392": {
+      "page_count": 12,
+      "cross_markers": 0
+    },
+    "600490": {
+      "page_count": 12,
+      "cross_markers": 0
+    },
+    "600521": {
+      "page_count": 12,
+      "cross_markers": 0
+    },
+    "600545": {
+      "page_count": 10,
+      "cross_markers": 0
+    },
+    "600569": {
+      "page_count": 11,
+      "cross_markers": 0
+    },
+    "600592": {
+      "page_count": 10,
+      "cross_markers": 0
+    },
+    "600597": {
+      "page_count": 8,
+      "cross_markers": 0
+    },
+    "600599": {
+      "page_count": 12,
+      "cross_markers": 0
+    },
+    "600612": {
+      "page_count": 11,
+      "cross_markers": 0
+    },
+    "600619": {
+      "page_count": 12,
+      "cross_markers": 0
+    },
+    "600623": {
+      "page_count": 10,
+      "cross_markers": 0
+    },
+    "600626": {
+      "page_count": 11,
+      "cross_markers": 0
+    },
+    "600658": {
+      "page_count": 12,
+      "cross_markers": 0
+    },
+    "600679": {
+      "page_count": 9,
+      "cross_markers": 0
+    },
+    "600778": {
+      "page_count": 9,
+      "cross_markers": 0
+    },
+    "600779": {
+      "page_count": 11,
+      "cross_markers": 0
+    },
+    "600791": {
+      "page_count": 12,
+      "cross_markers": 0
+    },
+    "600846": {
+      "page_count": 10,
+      "cross_markers": 0
+    },
+    "600916": {
+      "page_count": 12,
+      "cross_markers": 0
+    },
+    "600933": {
+      "page_count": 16,
+      "cross_markers": 0
+    },
+    "600966": {
+      "page_count": 11,
+      "cross_markers": 0
+    },
+    "601009": {
+      "page_count": 11,
+      "cross_markers": 0
+    },
+    "601010": {
+      "page_count": 10,
+      "cross_markers": 0
+    },
+    "601011": {
+      "page_count": 10,
+      "cross_markers": 0
+    },
+    "601012": {
+      "page_count": 14,
+      "cross_markers": 0
+    },
+    "601117": {
+      "page_count": 8,
+      "cross_markers": 0
+    },
+    "601127": {
+      "page_count": 11,
+      "cross_markers": 0
+    },
+    "601222": {
+      "page_count": 13,
+      "cross_markers": 0
+    },
+    "601388": {
+      "page_count": 12,
+      "cross_markers": 0
+    },
+    "601555": {
+      "page_count": 10,
+      "cross_markers": 0
+    },
+    "601678": {
+      "page_count": 11,
+      "cross_markers": 0
+    },
+    "601696": {
+      "page_count": 7,
+      "cross_markers": 0
+    },
+    "601933": {
+      "page_count": 12,
+      "cross_markers": 0
+    },
+    "603037": {
+      "page_count": 11,
+      "cross_markers": 0
+    },
+    "603040": {
+      "page_count": 14,
+      "cross_markers": 0
+    },
+    "603086": {
+      "page_count": 11,
+      "cross_markers": 0
+    },
+    "603108": {
+      "page_count": 12,
+      "cross_markers": 0
+    },
+    "603118": {
+      "page_count": 11,
+      "cross_markers": 0
+    },
+    "603123": {
+      "page_count": 10,
+      "cross_markers": 0
+    },
+    "603155": {
+      "page_count": 12,
+      "cross_markers": 0
+    },
+    "603196": {
+      "page_count": 11,
+      "cross_markers": 0
+    },
+    "603201": {
+      "page_count": 11,
+      "cross_markers": 0
+    },
+    "603228": {
+      "page_count": 11,
+      "cross_markers": 0
+    },
+    "603232": {
+      "page_count": 11,
+      "cross_markers": 0
+    },
+    "603256": {
+      "page_count": 36,
+      "cross_markers": 0
+    },
+    "603299": {
+      "page_count": 19,
+      "cross_markers": 0
+    },
+    "603313": {
+      "page_count": 10,
+      "cross_markers": 0
+    },
+    "603316": {
+      "page_count": 10,
+      "cross_markers": 0
+    },
+    "603322": {
+      "page_count": 10,
+      "cross_markers": 0
+    },
+    "603330": {
+      "page_count": 11,
+      "cross_markers": 0
+    },
+    "603358": {
+      "page_count": 10,
+      "cross_markers": 0
+    },
+    "603365": {
+      "page_count": 8,
+      "cross_markers": 0
+    },
+    "603369": {
+      "page_count": 10,
+      "cross_markers": 0
+    },
+    "603379": {
+      "page_count": 10,
+      "cross_markers": 0
+    },
+    "603398": {
+      "page_count": 12,
+      "cross_markers": 0
+    },
+    "603421": {
+      "page_count": 11,
+      "cross_markers": 0
+    },
+    "603439": {
+      "page_count": 9,
+      "cross_markers": 0
+    },
+    "603569": {
+      "page_count": 10,
+      "cross_markers": 0
+    },
+    "603586": {
+      "page_count": 15,
+      "cross_markers": 0
+    },
+    "603630": {
+      "page_count": 9,
+      "cross_markers": 0
+    },
+    "603633": {
+      "page_count": 12,
+      "cross_markers": 0
+    },
+    "603668": {
+      "page_count": 12,
+      "cross_markers": 0
+    },
+    "603707": {
+      "page_count": 13,
+      "cross_markers": 0
+    },
+    "603726": {
+      "page_count": 12,
+      "cross_markers": 0
+    },
+    "603728": {
+      "page_count": 12,
+      "cross_markers": 0
+    },
+    "603777": {
+      "page_count": 10,
+      "cross_markers": 0
+    },
+    "603798": {
+      "page_count": 11,
+      "cross_markers": 0
+    },
+    "603809": {
+      "page_count": 11,
+      "cross_markers": 0
+    },
+    "603818": {
+      "page_count": 10,
+      "cross_markers": 0
+    },
+    "603883": {
+      "page_count": 12,
+      "cross_markers": 0
+    },
+    "603898": {
+      "page_count": 10,
+      "cross_markers": 0
+    },
+    "603901": {
+      "page_count": 11,
+      "cross_markers": 0
+    },
+    "603908": {
+      "page_count": 12,
+      "cross_markers": 0
+    },
+    "603915": {
+      "page_count": 12,
+      "cross_markers": 0
+    },
+    "603922": {
+      "page_count": 11,
+      "cross_markers": 0
+    },
+    "603955": {
+      "page_count": 14,
+      "cross_markers": 0
+    },
+    "603960": {
+      "page_count": 11,
+      "cross_markers": 0
+    },
+    "605099": {
+      "page_count": 11,
+      "cross_markers": 0
+    },
+    "605123": {
+      "page_count": 12,
+      "cross_markers": 0
+    },
+    "605186": {
+      "page_count": 12,
+      "cross_markers": 0
+    },
+    "605318": {
+      "page_count": 12,
+      "cross_markers": 0
+    },
+    "605588": {
+      "page_count": 12,
+      "cross_markers": 0
+    }
+  }
+}

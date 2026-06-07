@@ -1,0 +1,119 @@
+{
+  "scene": "dense_numerical",
+  "title": "密集数值提取",
+  "source": "FinAR-Bench",
+  "ground_truth": "XBRL (FinAR-Bench dev.txt/test.txt)",
+  "selection_signal": "numeric_density（每页金额型数值数）最高",
+  "primary_metric": "numeric_density",
+  "count": 10,
+  "items": [
+    {
+      "code": "601117",
+      "file": "601117.pdf",
+      "pages": 8,
+      "numeric_density": 124.5,
+      "cross_page_score": 8,
+      "bracket_negatives": 0,
+      "units": []
+    },
+    {
+      "code": "603630",
+      "file": "603630.pdf",
+      "pages": 9,
+      "numeric_density": 119.4,
+      "cross_page_score": 9,
+      "bracket_negatives": 0,
+      "units": [
+        "元"
+      ]
+    },
+    {
+      "code": "601696",
+      "file": "601696.pdf",
+      "pages": 7,
+      "numeric_density": 118.4,
+      "cross_page_score": 7,
+      "bracket_negatives": 42,
+      "units": [
+        "元"
+      ]
+    },
+    {
+      "code": "600778",
+      "file": "600778.pdf",
+      "pages": 9,
+      "numeric_density": 95.6,
+      "cross_page_score": 9,
+      "bracket_negatives": 0,
+      "units": [
+        "元"
+      ]
+    },
+    {
+      "code": "600679",
+      "file": "600679.pdf",
+      "pages": 9,
+      "numeric_density": 95.2,
+      "cross_page_score": 8,
+      "bracket_negatives": 0,
+      "units": [
+        "元"
+      ]
+    },
+    {
+      "code": "603365",
+      "file": "603365.pdf",
+      "pages": 8,
+      "numeric_density": 90.8,
+      "cross_page_score": 8,
+      "bracket_negatives": 0,
+      "units": [
+        "元"
+      ]
+    },
+    {
+      "code": "603313",
+      "file": "603313.pdf",
+      "pages": 10,
+      "numeric_density": 89.6,
+      "cross_page_score": 10,
+      "bracket_negatives": 0,
+      "units": [
+        "元"
+      ]
+    },
+    {
+      "code": "603439",
+      "file": "603439.pdf",
+      "pages": 9,
+      "numeric_density": 89.2,
+      "cross_page_score": 9,
+      "bracket_negatives": 0,
+      "units": [
+        "元"
+      ]
+    },
+    {
+      "code": "600130",
+      "file": "600130.pdf",
+      "pages": 8,
+      "numeric_density": 89.0,
+      "cross_page_score": 8,
+      "bracket_negatives": 0,
+      "units": [
+        "元"
+      ]
+    },
+    {
+      "code": "600623",
+      "file": "600623.pdf",
+      "pages": 10,
+      "numeric_density": 88.6,
+      "cross_page_score": 10,
+      "bracket_negatives": 0,
+      "units": [
+        "元"
+      ]
+    }
+  ]
+}

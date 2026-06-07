@@ -1,0 +1,107 @@
+# CLAUDE.md — 金融财报 PDF 解析 Skill 评测项目
+
+## 课题目标
+
+开发并评测一个基于火山引擎 LAS（`las_pdf_parse_doubao`）的金融财报 PDF 解析 Skill。
+
+## 课题核心要求
+
+### 1. PDF 解析能力（金融场景）
+- 重点攻克：跨页表格、无边框表格、密集数值提取、多栏排版阅读顺序
+- 支持精准识别：标题、正文、表格、图片、页眉页脚等元素
+- 还原正确的阅读顺序（Reading Order）
+- 复杂表格（合并单元格、多级表头）还原为 HTML/Markdown 格式
+- 结果标准化输出为 JSON 或 Markdown
+
+### 2. 全流程端到端
+- 输入数据 → OpenClaw 调度 → 自定义 Skill 执行 → 结果输出/保存
+- 至少 1 组真实样例完成验证，流程可重复执行
+- 异常场景兜底：输入不合法、素材缺失、模型返回异常、处理超时等
+
+### 3. 评测体系
+- 评测方案：评测指标 + 判断标准
+- 评测用例集
+- 评测结果
+- 典型成功/失败案例分析及优化结论
+
+### 4. 加分项
+- 深度行业视野：行业调研、主流开源/商业方案对比、前沿论文梳理
+- 严谨量化体系：明确打分标准（公式定义、扣分细则）或 LLM-as-a-Judge 设计
+- 自动化评测能力：一键跑通对比打分，输出可视化结果报告
+
+---
+
+## 评测框架（4 模块 + 打分模型 + 下游验证 + 行业调研）
+
+```
+总分 = 加权平均（1~10 分制）
+
+模块 1: 内容还原度（Content Fidelity）—— 30%
+  ├── 1.1 文本准确率（CER vs Mineru）
+  ├── 1.2 表格还原度（TEDS + Cell F1 vs XBRL）
+  └── 1.3 数值匹配率（Precision/Recall/F1 vs XBRL）
+  └── 1.4 场景拆解（跨页/密集数值/无边框场景下各指标变化）
+
+模块 2: 结构组织度（Structure Quality）—— 20%
+  ├── 2.1 页面装饰密度（页码/重复页眉/签名栏占比）
+  ├── 2.2 跨页表格完整性（跨页表是否被拼回连续整体）
+  └── 2.3 关键节段覆盖（资产负债表/利润表/现金流量表是否齐全）
+  └── 定义：PDF 物理页面结构 → 文档逻辑结构的转换质量
+
+模块 3: 鲁棒性与边界（Robustness & Edge Cases）—— 25%
+  ├── 3.1 异常文件处理（损坏/加密/空文件/非PDF）
+  ├── 3.2 极端排版场景（跨页/无边框/密集数值专项指标）
+  └── 3.3 语言支持（中英混排、纯英文、繁体中文）← 需补数据
+
+模块 4: 端到端业务可用性（End-to-End Utility）—— 25%
+  ├── 4.1 下游任务准确率（Fact/Indicator/Reasoning via FinAR-Bench 1300 任务）
+  └── 4.2 场景衰减分析（跨页/密集数值/无边框场景下的任务准确率变化）
+
+独立验证: FinAR-Bench 13 任务下游评测
+  ├── 用 LAS 输出 Markdown 作为 LLM 上下文
+  ├── 逐题问答，LLM 答案 vs XBRL ground_truth
+  └── 按任务类型（fact/indicator/reasoning）和场景分组
+
+行业调研: 第零章
+  ├── 主流方案横向对比（Mineru/pdfplumber/PaddleOCR/Nougat/Marker）
+  └── 各方案在金融财报场景的优劣分析
+```
+
+---
+
+## 评测数据集
+
+| 数据集 | 规模 | 用途 |
+|--------|------|------|
+| FinAR-Bench dev/test.txt | 10+90 家公司 XBRL 三张表 + 13 任务 | Ground Truth |
+| eval_dataset/cross_page_tables/ | 10 份年报 PDF | 跨页表格场景 |
+| eval_dataset/dense_numerical/ | 10 份年报 PDF | 密集数值提取场景 |
+| eval_dataset/borderless_tables/ | 2 份年报 PDF | 无边框表格场景 |
+| eval_dataset/anomaly/ | 4 个异常文件 | 鲁棒性测试（损坏/加密/空文件/非PDF） |
+| eval_dataset/S5_long_documents/ | 1 份合成 98 页 PDF | 长文档压力测试 |
+| extracted/txt_output/ | 6 种解析器对照输出 | CER 交叉参照 |
+
+## 代码提交规则
+
+- **每次修改都必须提交到 git 仓库**，确保变更历史完整。
+- 提交信息使用中文，简明描述改动原因和内容。
+
+---
+
+## 技术栈
+
+- 解析引擎：火山引擎 LAS `las_pdf_parse_doubao` v1
+- PDF 存储：火山引擎 TOS（`ark-auto-2108530377-cn-beijing-default`）
+- 评测语言：Python 3.12
+- Ground Truth：XBRL（来自上海证券交易所，FinAR-Bench 数据集）
+
+## 关键路径
+
+- LAS 配置文件：`skill/script/config.yaml`
+- LAS API 客户端：`skill/script/las_client.py`
+- 批量解析脚本：`scripts/batch_las_parse.py`
+- 批量评测脚本：`scripts/batch_module1_eval.py`
+- LAS 解析结果：`output/las_results/{股票代码}/`
+- 评测模块：`module1/`
+- 评测方案文档：`docs/evaluation_plan.md`
+- 迭代记录：`docs/评测方案迭代.md`

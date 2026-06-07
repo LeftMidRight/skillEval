@@ -2,3 +2,7 @@ output/
 testpdf/
 __pycache__/
 *.pyc
+# Large binary data
+data/FinAR-Bench/pdf_data.zip
+data/FinAR-Bench/pdf_extractor_result.zip
+data/FinAR-Bench/extracted/

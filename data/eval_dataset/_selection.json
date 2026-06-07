@@ -1,0 +1,49 @@
+{
+  "description": "FinAR 三场景评测集（课题金融场景）",
+  "source": "FinAR-Bench (中文 A 股 2023 年报财务报表节选)",
+  "ground_truth": "XBRL",
+  "total_pdf_count": 22,
+  "scenes_not_overlapping": true,
+  "scenes": {
+    "cross_page_tables": {
+      "title": "跨页表格",
+      "count": 10,
+      "codes": [
+        "603256",
+        "603299",
+        "600933",
+        "601012",
+        "603955",
+        "600100",
+        "600366",
+        "601222",
+        "600082",
+        "600193"
+      ]
+    },
+    "dense_numerical": {
+      "title": "密集数值提取",
+      "count": 10,
+      "codes": [
+        "601117",
+        "603630",
+        "601696",
+        "600778",
+        "600679",
+        "603365",
+        "603313",
+        "603439",
+        "600130",
+        "600623"
+      ]
+    },
+    "borderless_tables": {
+      "title": "无边框表格",
+      "count": 2,
+      "codes": [
+        "601555",
+        "601009"
+      ]
+    }
+  }
+}

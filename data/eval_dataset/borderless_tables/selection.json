@@ -1,0 +1,31 @@
+{
+  "scene": "borderless_tables",
+  "title": "无边框表格",
+  "source": "FinAR-Bench",
+  "ground_truth": "XBRL (FinAR-Bench dev.txt/test.txt)",
+  "selection_signal": "竖线/数值比最低（少边框/无边框）",
+  "primary_metric": "borderless",
+  "count": 2,
+  "items": [
+    {
+      "code": "601555",
+      "file": "601555.pdf",
+      "pages": 10,
+      "numeric_density": 106.3,
+      "cross_page_score": 10,
+      "bracket_negatives": 9,
+      "units": [
+        "元"
+      ]
+    },
+    {
+      "code": "601009",
+      "file": "601009.pdf",
+      "pages": 11,
+      "numeric_density": 42.9,
+      "cross_page_score": 11,
+      "bracket_negatives": 127,
+      "units": []
+    }
+  ]
+}
