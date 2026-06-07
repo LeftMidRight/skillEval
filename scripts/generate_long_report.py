@@ -19,6 +19,8 @@ from fpdf import FPDF
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 OUT_DIR = PROJECT_ROOT / "data" / "eval_dataset" / "S5_long_documents"
 OUT_DIR.mkdir(parents=True, exist_ok=True)
+GT_DIR = PROJECT_ROOT / "data" / "eval_dataset" / "ground_truth"
+GT_DIR.mkdir(parents=True, exist_ok=True)
 
 
 # ============================================================================
@@ -937,9 +939,17 @@ def build_xbrl_json():
         "file_path": "./data/pdf_data/SYNTH_001.pdf",
     }
 
-    xbrl_path = OUT_DIR / "SYNTH_001_xbrl.json"
-    xbrl_path.write_text(json.dumps(record, ensure_ascii=False, indent=2), encoding="utf-8")
-    print(f"XBRL GT saved: {xbrl_path}")
+    packaged_record = {
+        **record,
+        "sample_id": "SYNTH_001_long_document",
+        "company_code": "SYNTH_001",
+        "gt_kind": "synthetic_gt_json",
+        "source": "synthetic",
+        "generated_by": "scripts/generate_long_report.py",
+    }
+    packaged_path = GT_DIR / "SYNTH_001_long_document_gt.json"
+    packaged_path.write_text(json.dumps(packaged_record, ensure_ascii=False, indent=2), encoding="utf-8")
+    print(f"Canonical GT saved: {packaged_path}")
     print(f"Tasks: {len(instances)} (6 fact + 6 indicator + 1 reasoning)")
 
 

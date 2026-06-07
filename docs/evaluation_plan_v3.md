@@ -1,8 +1,9 @@
 # 金融财报 PDF LAS 解析 Skill — 评测方案 v3
 
 > 版本 v3 | 2026-06-05
-> 数据源：FinAR-Bench（中文 A 股 2023 年报）+ XBRL 合成专项样本。
-> 当前实现以 `data/eval_dataset/manifest.json` 为 canonical 样本清单：22 份真实 FinAR 样本 + 6 份合成专项样本。
+> 数据源：FinAR-Bench（中文 A 股 2023 年报）+ XBRL 合成专项样本 + 异常鲁棒性样本。
+> 当前实现以 `data/eval_dataset/manifest.json` 为 canonical 样本清单：22 份真实 FinAR 样本 + 11 份合成/鲁棒性专项样本。
+> 所有 canonical GT 已收拢到 `data/eval_dataset/ground_truth/<sample_id>_gt.json`，便于直接上传/搬运 `eval_dataset/`。
 
 ---
 
@@ -10,21 +11,24 @@
 
 | 项目 | 内容 |
 |------|------|
-| 数据源 | FinAR-Bench dev.txt（10 家）+ test.txt（90 家），选其中 22 家 |
+| 数据源 | FinAR-Bench dev.txt（10 家）+ test.txt（90 家），选其中 22 家；另补合成/鲁棒性专项 11 份 |
 | PDF | `FinAR-Bench/extracted/pdf_data/<code>.pdf` |
-| Ground Truth | XBRL 三张表（资产负债表/利润表/现金流量表）|
+| Ground Truth | `data/eval_dataset/ground_truth/<sample_id>_gt.json`；真实 FinAR 样本为 `xbrl_record_json` |
 | 参考解析器 | Mineru / pdfplumber / pymupdf / pypdf / pdfminer / pdftotext |
-| 场景 | 真实 FinAR：跨页表格(10) / 密集数值(10) / 无边框表格(2)；合成专项：无边框(3) / 多栏排版(3) |
+| 场景 | 真实 FinAR：跨页表格(10) / 密集数值(10) / 无边框表格(2)；合成/鲁棒性专项：无边框(3) / 多栏排版(3) / 超长文档(1) / 异常文档(4) |
 
-### 三场景定义
+### 场景定义
 
 | 场景 | 数量 | 选择信号 | 测什么 |
 |------|:--:|------|------|
 | **跨页表格** | 10 | `cross_page_score`（连续表格页连段跨度之和）最高 | 跨页标记识别、跨页拼接完整性、表头复用 |
 | **密集数值** | 10 | `numeric_density`（每页金额型数值数）最高 | 千分位逗号、括号负数、元/万元/亿元单位 |
-| **无边框表格** | 2 | 竖线/数值比最低（全量仅此 2 家真正少边框） | 无线条表格的结构还原 |
+| **无边框表格** | 5 | 2 份真实 FinAR + 3 份合成无线条 PDF | 无线条表格的结构还原 |
+| **多栏排版** | 3 | 真实年报双栏专题页合成样本 | 阅读顺序 / layout_gt |
+| **超长文档** | 1 | 40 页长文档压力样本 | 长文档解析稳定性 |
+| **异常文档** | 4 | 损坏、零页、加密、伪 PDF | 解析鲁棒性 / expected failure |
 
-> 多栏排版：经全量检测确认 A 股年报 FinAR 样本为单栏，因此作为合成专项样本单独评测，不并入真实 FinAR 三场景均值。
+> 多栏排版、超长文档和异常文档：作为专项样本进入统一 manifest，通过 `eval_modules` 与 `expected_parse_status` 区分质量评分和鲁棒性评测。
 
 ---
 
@@ -39,7 +43,7 @@ Module 3: 下游可用性  FinAR-Bench 13 任务准确率（LLM-as-Judge）
 Anomaly: 异常兜底     非法输入 / 素材缺失 / 超时等
 ```
 
-**每个模块独立报告，不强制加权合并。** 报告时按三场景分组呈现，观察各指标在场景间的差异。
+**每个模块独立报告，不强制加权合并。** 报告时按 manifest 场景分组呈现，观察各指标在场景间的差异。
 
 ---
 
@@ -63,7 +67,7 @@ Anomaly: 异常兜底     非法输入 / 素材缺失 / 超时等
 | 对比维度 | 内容 |
 |----------|------|
 | 主指标 | LAS vs 6 解析器 CER 矩阵（含中位 CER） |
-| 场景拆解 | 三场景各自的 CER 均值 |
+| 场景拆解 | manifest 场景各自的 CER 均值 |
 | 参照基线 | Mineru vs 其余 5 解析器的 CER（作为"同类最好"基线） |
 
 **解读方式**：不映射 1-10 分，直接比较 LAS 中位 CER 与 Mineru 中位 CER 的差距。
@@ -146,7 +150,7 @@ Mineru Jaccard: 0.72（LAS 和 Mineru 数值重合度）
 
 ### 2.1 阅读顺序
 
-**覆盖范围**：全部 22 份 PDF，每份所有页面，共约 280 页。
+**覆盖范围**：`expected_parse_status=success` 的 29 份 PDF，每份所有页面；异常文档进入解析鲁棒性评测。
 
 **方法：LLM-as-Judge，双级评测**
 
@@ -256,7 +260,7 @@ Prompt 设计：
 | 噪声侵入率 | noise_intrusion score <5 的页数 / 总页数（越低越好） |
 | 跨页连续率 | continuous=true 的页对数 / 总页对数 |
 | 综合通过率 | overall_pass=true 的页数 / 总页数 |
-| 场景拆解 | 三场景分别统计以上指标 |
+| 场景拆解 | manifest 场景分别统计以上指标 |
 
 **客观性保障**：
 
@@ -396,7 +400,10 @@ Module 3 下游可用性（LLM-as-Judge）
 |------|:--:|--------|-------------|------|------------|:--:|:--:|:--:|:--:|:--:|
 | 跨页表格 | 10 | | | | | | | | | |
 | 密集数值 | 10 | | | | | | | | | |
-| 无边框表格 | 2 | | | | | | | | | |
+| 无边框表格 | 5 | | | | | | | | | |
+| 多栏排版 | 3 | | | | | | | | | |
+| 超长文档 | 1 | | | | | | | | | |
+| 异常文档 | 4 | expected failure | | | | | | | | |
 
 ---
 
@@ -405,7 +412,7 @@ Module 3 下游可用性（LLM-as-Judge）
 | 旧版 v2 | 新版 v3 | 原因 |
 |---------|---------|------|
 | 4 模块加权总分 1-10 | 三个模块独立报告，不强制加权 | 权重缺乏依据，掩盖各维度独立信息 |
-| A~G 七场景（大量重叠） | 三场景互不重复 | 旧分类无区分度 |
+| A~G 七场景（大量重叠） | manifest 统一场景 + `eval_modules` | 旧分类无区分度，且无法承载专项/异常样本 |
 | 所有指标映射 1-10 分 | 保留原始指标值 | 1-10 映射导致分数集中 |
 | 表格仅对比 XBRL | 增加 Mineru 作为第二参照系 | XBRL 与 LAS 输出体量不对等 |
 | 数值 F1 混合 Precision/Recall | 拆分 XBRL Recall + Mineru Jaccard | Precision 罚 LAS 做多了 |
@@ -414,7 +421,7 @@ Module 3 下游可用性（LLM-as-Judge）
 | 模块 2 元素识别 | 删除（无区分度） | — |
 | Module 2 仅保留阅读顺序 | 全部 LLM-as-Judge | 减少混合方法，身份更清晰 |
 | CER 仅对比 Mineru | 六解析器中位 CER + Mineru 基线 | 单一参照有偏好风险 |
-| 模块 3 异常场景 | 独立异常兜底测试 | 与数据无关，单独构造 |
+| 模块 3 异常场景 | manifest 中的 `expected_parse_failure` 样本 | 异常场景也属于评测体系 |
 | 模块 4 端到端 | Module 3：FinAR-Bench 13 任务下游评测 | 直接测"能不能用" |
 
 ---
@@ -423,11 +430,11 @@ Module 3 下游可用性（LLM-as-Judge）
 
 | 阶段 | 内容 | 依赖 |
 |------|------|------|
-| 1 | 新 22 家跑 LAS 解析 | `batch_processor.py` |
+| 1 | manifest 33 个样本上传/解析；4 个 anomaly 预期失败 | `batch_processor.py` / TOS URL |
 | 2 | Module 1 — 文本/表格/数值/跨页连续性评测 | 改造现有 module1 代码 |
 | 3 | Module 2 — 阅读顺序（LLM-as-Judge） | 新写 |
 | 4 | Module 3 — FinAR-Bench 13 任务（全部 LLM-as-Judge） | 新写 |
-| 5 | 异常兜底测试 | 构造异常文件 |
+| 5 | 异常鲁棒性评测 | manifest 中 `eval_modules=parse_robustness` |
 | 6 | 报告生成（按场景分组） | 汇总脚本 |
 
 ---
@@ -437,8 +444,8 @@ Module 3 下游可用性（LLM-as-Judge）
 | 模块 | 子任务 | 用 LLM？ | 调用量 | 类型 |
 |------|--------|:--:|------|------|
 | Module 1 | 跨页表格连续性 | ✗ | — | 规则匹配 |
-| Module 2 | 阅读顺序（页内） | ✓ | ~280 页 | 图片+文字 |
-| Module 2 | 阅读顺序（跨页） | ✓ | ~258 页对 | 图片+文字 |
+| Module 2 | 阅读顺序（页内） | ✓ | success 样本页数 | 图片+文字 |
+| Module 2 | 阅读顺序（跨页） | ✓ | success 样本页对 | 图片+文字 |
 | Module 3 | fact | ✓ | 22 家 | 文本问答（提取数值） |
 | Module 3 | indicator | ✓ | 22 家 | 文本问答（计算指标） |
 | Module 3 | reasoning | ✓ | 22 家 | 文本问答（逻辑判断） |

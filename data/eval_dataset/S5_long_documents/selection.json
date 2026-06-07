@@ -1,0 +1,10 @@
+[
+  {
+    "sample_id": "SYNTH_001_long_document",
+    "file": "SYNTH_001.pdf",
+    "gt_file": "../ground_truth/SYNTH_001_long_document_gt.json",
+    "expected_parse_status": "success",
+    "eval_modules": ["module1", "long_document"],
+    "notes": "Synthetic long-document stress sample with XBRL-like GT."
+  }
+]

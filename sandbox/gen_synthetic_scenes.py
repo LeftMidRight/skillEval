@@ -39,6 +39,7 @@ SELECTED = ["603421", "603707", "600569"]
 # 场景目录
 BORDERLESS_DIR = EVAL_ROOT / "borderless_tables"
 MULTICOLUMN_DIR = EVAL_ROOT / "synthetic_multicolumn"
+GT_DIR = EVAL_ROOT / "ground_truth"
 
 
 # ---------------------------------------------------------------------------
@@ -1018,15 +1019,20 @@ def save_gt(
     code: str,
     xbrl: dict,
     scene_dir: Path,
-    suffix: str = "",
     layout_gt: dict[str, Any] | None = None,
 ):
     """为合成 PDF 保存 XBRL GT。
 
     格式与现有 eval_dataset 对齐：
-      {scene}/<code><suffix>_gt.json → {"xbrl_table": ..., "instances": ..., "company": ...}
+      ground_truth/<sample_id>_gt.json
     """
-    stem = f"{code}{suffix}"
+    if scene_dir == BORDERLESS_DIR:
+        sample_id = f"{code}_synth_borderless"
+    elif scene_dir == MULTICOLUMN_DIR:
+        sample_id = f"{code}_multicolumn"
+    else:
+        raise ValueError(f"Unknown synthetic scene dir: {scene_dir}")
+
     gt = {
         "company_code": code,
         "company_name": COMPANY_NAMES.get(code, code),
@@ -1035,7 +1041,15 @@ def save_gt(
     }
     if layout_gt is not None:
         gt["layout_gt"] = layout_gt
-    out_path = scene_dir / f"{stem}_gt.json"
+    gt.update({
+        "sample_id": sample_id,
+        "gt_kind": "synthetic_gt_json",
+        "source": "synthetic",
+        "generated_by": "sandbox/gen_synthetic_scenes.py",
+    })
+
+    GT_DIR.mkdir(parents=True, exist_ok=True)
+    out_path = GT_DIR / f"{sample_id}_gt.json"
     out_path.write_text(json.dumps(gt, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"  GT saved → {out_path}")
 
@@ -1113,12 +1127,12 @@ def main():
         if args.scene in {"all", "borderless"}:
             # Borderless
             generate_borderless(code, xbrl)
-            save_gt(code, xbrl, BORDERLESS_DIR, suffix="_synth")
+            save_gt(code, xbrl, BORDERLESS_DIR)
 
         if args.scene in {"all", "multicolumn"}:
             # Multi-column
             layout_gt = generate_multicolumn(code, xbrl)
-            save_gt(code, xbrl, MULTICOLUMN_DIR, suffix="_multi", layout_gt=layout_gt)
+            save_gt(code, xbrl, MULTICOLUMN_DIR, layout_gt=layout_gt)
 
     update_selection()
     scene_count = 2 if args.scene == "all" else 1

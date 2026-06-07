@@ -1,8 +1,8 @@
 {
   "description": "评测集场景摘要；canonical 样本清单见 manifest.json",
-  "source": "FinAR-Bench + XBRL 合成样本",
-  "ground_truth": "XBRL / synthetic_gt_json",
-  "total_pdf_count": 28,
+  "source": "FinAR-Bench + XBRL 合成样本 + 异常鲁棒性样本",
+  "ground_truth": "Canonical GT in ground_truth/<sample_id>_gt.json; kinds: xbrl_record_json / synthetic_gt_json / expected_parse_failure",
+  "total_pdf_count": 33,
   "scenes_not_overlapping": false,
   "scenes": {
     "cross_page_tables": {
@@ -59,6 +59,27 @@
       ],
       "synthetic": true,
       "note": "XBRL 数据反推生成，真实年报双栏专题页；GT 包含 XBRL 与 layout_gt"
+    },
+    "S5_long_documents": {
+      "title": "超长文档（合成）",
+      "count": 1,
+      "codes": [
+        "SYNTH_001_long_document"
+      ],
+      "synthetic": true,
+      "note": "40 页长文档压力样本，GT 使用 XBRL-like JSON"
+    },
+    "anomaly": {
+      "title": "异常文档",
+      "count": 4,
+      "codes": [
+        "anomaly_corrupted",
+        "anomaly_empty",
+        "anomaly_encrypted",
+        "anomaly_not_a_pdf"
+      ],
+      "synthetic": true,
+      "note": "用于解析鲁棒性评测；GT 类型为 expected_parse_failure"
     }
   }
 }

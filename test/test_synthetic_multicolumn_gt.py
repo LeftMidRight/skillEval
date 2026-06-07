@@ -3,9 +3,15 @@
 from __future__ import annotations
 
 import json
+import sys
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from evaluation.manifest import iter_samples
+
 SCENE_DIR = PROJECT_ROOT / "data" / "eval_dataset" / "synthetic_multicolumn"
 
 
@@ -14,8 +20,11 @@ def _load_json(path: Path):
 
 
 def test_multicolumn_gt_contains_layout_gt():
-    for gt_path in sorted(SCENE_DIR.glob("*_multi_gt.json")):
-        data = _load_json(gt_path)
+    samples = list(iter_samples(scene="synthetic_multicolumn"))
+    assert len(samples) == 3
+
+    for sample in samples:
+        data = _load_json(sample.gt_path)
         assert data["company_code"]
         assert data["company_name"]
         assert data["xbrl_table"]
@@ -48,7 +57,11 @@ def test_multicolumn_selection_matches_files():
         assert code in {"600569", "603421", "603707"}
         assert file_name == f"{code}_multi.pdf"
         assert (SCENE_DIR / file_name).exists()
-        assert (SCENE_DIR / f"{code}_multi_gt.json").exists()
+
+        sample_id = f"{code}_multicolumn"
+        sample = next(s for s in iter_samples(scene="synthetic_multicolumn") if s.sample_id == sample_id)
+        assert sample.gt_path.name == f"{sample_id}_gt.json"
+        assert sample.gt_path.exists()
 
 
 def main() -> int:

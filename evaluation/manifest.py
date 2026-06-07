@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -15,6 +15,8 @@ SCENE_TITLES = {
     "dense_numerical": "密集数值",
     "borderless_tables": "无边框表格",
     "synthetic_multicolumn": "多栏排版（合成）",
+    "S5_long_documents": "超长文档",
+    "anomaly": "异常文档",
 }
 
 
@@ -32,6 +34,9 @@ class EvalSample:
     las_result_dir: Path
     synthetic: bool = False
     parser_reference_code: str | None = None
+    eval_role: str = "core"
+    eval_modules: list[str] = field(default_factory=list)
+    expected_parse_status: str = "success"
     notes: str = ""
 
     @property
@@ -51,6 +56,9 @@ class EvalSample:
             las_result_dir=_resolve_path(raw["las_result_dir"], root),
             synthetic=bool(raw.get("synthetic", False)),
             parser_reference_code=raw.get("parser_reference_code"),
+            eval_role=raw.get("eval_role", _default_eval_role(raw)),
+            eval_modules=list(raw.get("eval_modules") or _default_eval_modules(raw)),
+            expected_parse_status=raw.get("expected_parse_status", "success"),
             notes=raw.get("notes", ""),
         )
 
@@ -66,6 +74,9 @@ class EvalSample:
             "gt_path": str(self.gt_path),
             "gt_kind": self.gt_kind,
             "las_result_dir": str(self.las_result_dir),
+            "eval_role": self.eval_role,
+            "eval_modules": self.eval_modules,
+            "expected_parse_status": self.expected_parse_status,
         }
 
 
@@ -74,6 +85,22 @@ def _resolve_path(value: str, root: Path) -> Path:
     if path.is_absolute():
         return path
     return root / path
+
+
+def _default_eval_role(raw: dict[str, Any]) -> str:
+    if raw.get("gt_kind") == "expected_parse_failure":
+        return "anomaly"
+    if raw.get("scene") == "S5_long_documents":
+        return "stress"
+    return "core"
+
+
+def _default_eval_modules(raw: dict[str, Any]) -> list[str]:
+    if raw.get("gt_kind") == "expected_parse_failure":
+        return ["parse_robustness"]
+    if raw.get("scene") == "S5_long_documents":
+        return ["module1", "long_document"]
+    return ["module1"]
 
 
 def load_manifest(path: str | Path | None = None) -> dict[str, Any]:

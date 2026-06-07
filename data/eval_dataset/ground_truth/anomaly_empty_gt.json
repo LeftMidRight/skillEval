@@ -1,0 +1,10 @@
+{
+  "sample_id": "anomaly_empty",
+  "gt_kind": "expected_parse_failure",
+  "expected_parse_status": "failure",
+  "expected_error_category": "zero_page_pdf",
+  "description": "The parser should fail gracefully or return a structured error for a zero-page PDF.",
+  "company_code": "anomaly_empty",
+  "source": "synthetic",
+  "generated_by": "scripts/generate_anomaly_data.py"
+}

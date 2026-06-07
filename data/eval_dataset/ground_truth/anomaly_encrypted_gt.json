@@ -1,0 +1,10 @@
+{
+  "sample_id": "anomaly_encrypted",
+  "gt_kind": "expected_parse_failure",
+  "expected_parse_status": "failure",
+  "expected_error_category": "encrypted_pdf",
+  "description": "The parser should fail gracefully or return a structured error for an encrypted PDF.",
+  "company_code": "anomaly_encrypted",
+  "source": "synthetic",
+  "generated_by": "scripts/generate_anomaly_data.py"
+}

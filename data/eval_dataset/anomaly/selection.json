@@ -1,0 +1,30 @@
+[
+  {
+    "sample_id": "anomaly_corrupted",
+    "file": "corrupted.pdf",
+    "gt_file": "../ground_truth/anomaly_corrupted_gt.json",
+    "expected_parse_status": "failure",
+    "expected_error_category": "corrupted_pdf"
+  },
+  {
+    "sample_id": "anomaly_empty",
+    "file": "empty.pdf",
+    "gt_file": "../ground_truth/anomaly_empty_gt.json",
+    "expected_parse_status": "failure",
+    "expected_error_category": "zero_page_pdf"
+  },
+  {
+    "sample_id": "anomaly_encrypted",
+    "file": "encrypted.pdf",
+    "gt_file": "../ground_truth/anomaly_encrypted_gt.json",
+    "expected_parse_status": "failure",
+    "expected_error_category": "encrypted_pdf"
+  },
+  {
+    "sample_id": "anomaly_not_a_pdf",
+    "file": "not_a_pdf.pdf",
+    "gt_file": "../ground_truth/anomaly_not_a_pdf_gt.json",
+    "expected_parse_status": "failure",
+    "expected_error_category": "not_a_pdf"
+  }
+]

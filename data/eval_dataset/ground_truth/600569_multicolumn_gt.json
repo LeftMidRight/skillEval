@@ -233,5 +233,9 @@
         ]
       }
     ]
-  }
+  },
+  "sample_id": "600569_multicolumn",
+  "gt_kind": "synthetic_gt_json",
+  "source": "synthetic",
+  "generated_by": "sandbox/gen_synthetic_scenes.py"
 }

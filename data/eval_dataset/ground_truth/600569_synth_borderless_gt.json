@@ -121,5 +121,9 @@
       "company": "安阳钢铁",
       "company_code": "600569.SH"
     }
-  ]
+  ],
+  "sample_id": "600569_synth_borderless",
+  "gt_kind": "synthetic_gt_json",
+  "source": "synthetic",
+  "generated_by": "sandbox/gen_synthetic_scenes.py"
 }

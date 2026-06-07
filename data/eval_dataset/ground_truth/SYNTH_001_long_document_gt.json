@@ -120,5 +120,10 @@
       "company_code": "900001.SH"
     }
   ],
-  "file_path": "./data/pdf_data/SYNTH_001.pdf"
+  "file_path": "./data/pdf_data/SYNTH_001.pdf",
+  "sample_id": "SYNTH_001_long_document",
+  "company_code": "SYNTH_001",
+  "gt_kind": "synthetic_gt_json",
+  "source": "synthetic",
+  "generated_by": "scripts/generate_long_report.py"
 }

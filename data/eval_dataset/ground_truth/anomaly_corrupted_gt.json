@@ -1,0 +1,10 @@
+{
+  "sample_id": "anomaly_corrupted",
+  "gt_kind": "expected_parse_failure",
+  "expected_parse_status": "failure",
+  "expected_error_category": "corrupted_pdf",
+  "description": "The parser should fail gracefully or return a structured error for a corrupted PDF.",
+  "company_code": "anomaly_corrupted",
+  "source": "synthetic",
+  "generated_by": "scripts/generate_anomaly_data.py"
+}

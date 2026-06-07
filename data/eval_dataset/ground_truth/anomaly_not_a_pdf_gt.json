@@ -1,0 +1,10 @@
+{
+  "sample_id": "anomaly_not_a_pdf",
+  "gt_kind": "expected_parse_failure",
+  "expected_parse_status": "failure",
+  "expected_error_category": "not_a_pdf",
+  "description": "The parser should fail gracefully or return a structured error for a non-PDF payload.",
+  "company_code": "anomaly_not_a_pdf",
+  "source": "synthetic",
+  "generated_by": "scripts/generate_anomaly_data.py"
+}

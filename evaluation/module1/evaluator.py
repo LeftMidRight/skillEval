@@ -37,7 +37,7 @@ def _load_xbrl_record_for_sample(
     xbrl_records: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Load an XBRL-like record for one manifest sample."""
-    if sample.gt_kind == "synthetic_gt_json":
+    if sample.gt_kind in {"synthetic_gt_json", "xbrl_record_json"}:
         raw = json.loads(sample.gt_path.read_text(encoding="utf-8"))
         return {
             "table": raw.get("xbrl_table", raw.get("table", "")),

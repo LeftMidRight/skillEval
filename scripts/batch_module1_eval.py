@@ -29,6 +29,7 @@ def _load_finar_records() -> list[dict]:
 
 def _select_samples(args) -> list[EvalSample]:
     samples = list(iter_samples(scene=args.scene if args.scene else None))
+    samples = [sample for sample in samples if "module1" in sample.eval_modules]
     if args.sample_id:
         wanted = set(args.sample_id)
         samples = [sample for sample in samples if sample.sample_id in wanted]

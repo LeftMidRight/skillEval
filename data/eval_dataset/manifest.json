@@ -9,8 +9,8 @@
       "source": "FinAR-Bench",
       "synthetic": false,
       "pdf_path": "data/eval_dataset/cross_page_tables/603256.pdf",
-      "gt_path": "data/FinAR-Bench",
-      "gt_kind": "finar_bench",
+      "gt_path": "data/eval_dataset/ground_truth/603256_gt.json",
+      "gt_kind": "xbrl_record_json",
       "las_result_dir": "output/las_results/603256",
       "parser_reference_code": "603256"
     },
@@ -21,8 +21,8 @@
       "source": "FinAR-Bench",
       "synthetic": false,
       "pdf_path": "data/eval_dataset/cross_page_tables/603299.pdf",
-      "gt_path": "data/FinAR-Bench",
-      "gt_kind": "finar_bench",
+      "gt_path": "data/eval_dataset/ground_truth/603299_gt.json",
+      "gt_kind": "xbrl_record_json",
       "las_result_dir": "output/las_results/603299",
       "parser_reference_code": "603299"
     },
@@ -33,8 +33,8 @@
       "source": "FinAR-Bench",
       "synthetic": false,
       "pdf_path": "data/eval_dataset/cross_page_tables/600933.pdf",
-      "gt_path": "data/FinAR-Bench",
-      "gt_kind": "finar_bench",
+      "gt_path": "data/eval_dataset/ground_truth/600933_gt.json",
+      "gt_kind": "xbrl_record_json",
       "las_result_dir": "output/las_results/600933",
       "parser_reference_code": "600933"
     },
@@ -45,8 +45,8 @@
       "source": "FinAR-Bench",
       "synthetic": false,
       "pdf_path": "data/eval_dataset/cross_page_tables/601012.pdf",
-      "gt_path": "data/FinAR-Bench",
-      "gt_kind": "finar_bench",
+      "gt_path": "data/eval_dataset/ground_truth/601012_gt.json",
+      "gt_kind": "xbrl_record_json",
       "las_result_dir": "output/las_results/601012",
       "parser_reference_code": "601012"
     },
@@ -57,8 +57,8 @@
       "source": "FinAR-Bench",
       "synthetic": false,
       "pdf_path": "data/eval_dataset/cross_page_tables/603955.pdf",
-      "gt_path": "data/FinAR-Bench",
-      "gt_kind": "finar_bench",
+      "gt_path": "data/eval_dataset/ground_truth/603955_gt.json",
+      "gt_kind": "xbrl_record_json",
       "las_result_dir": "output/las_results/603955",
       "parser_reference_code": "603955"
     },
@@ -69,8 +69,8 @@
       "source": "FinAR-Bench",
       "synthetic": false,
       "pdf_path": "data/eval_dataset/cross_page_tables/600100.pdf",
-      "gt_path": "data/FinAR-Bench",
-      "gt_kind": "finar_bench",
+      "gt_path": "data/eval_dataset/ground_truth/600100_gt.json",
+      "gt_kind": "xbrl_record_json",
       "las_result_dir": "output/las_results/600100",
       "parser_reference_code": "600100"
     },
@@ -81,8 +81,8 @@
       "source": "FinAR-Bench",
       "synthetic": false,
       "pdf_path": "data/eval_dataset/cross_page_tables/600366.pdf",
-      "gt_path": "data/FinAR-Bench",
-      "gt_kind": "finar_bench",
+      "gt_path": "data/eval_dataset/ground_truth/600366_gt.json",
+      "gt_kind": "xbrl_record_json",
       "las_result_dir": "output/las_results/600366",
       "parser_reference_code": "600366"
     },
@@ -93,8 +93,8 @@
       "source": "FinAR-Bench",
       "synthetic": false,
       "pdf_path": "data/eval_dataset/cross_page_tables/601222.pdf",
-      "gt_path": "data/FinAR-Bench",
-      "gt_kind": "finar_bench",
+      "gt_path": "data/eval_dataset/ground_truth/601222_gt.json",
+      "gt_kind": "xbrl_record_json",
       "las_result_dir": "output/las_results/601222",
       "parser_reference_code": "601222"
     },
@@ -105,8 +105,8 @@
       "source": "FinAR-Bench",
       "synthetic": false,
       "pdf_path": "data/eval_dataset/cross_page_tables/600082.pdf",
-      "gt_path": "data/FinAR-Bench",
-      "gt_kind": "finar_bench",
+      "gt_path": "data/eval_dataset/ground_truth/600082_gt.json",
+      "gt_kind": "xbrl_record_json",
       "las_result_dir": "output/las_results/600082",
       "parser_reference_code": "600082"
     },
@@ -117,8 +117,8 @@
       "source": "FinAR-Bench",
       "synthetic": false,
       "pdf_path": "data/eval_dataset/cross_page_tables/600193.pdf",
-      "gt_path": "data/FinAR-Bench",
-      "gt_kind": "finar_bench",
+      "gt_path": "data/eval_dataset/ground_truth/600193_gt.json",
+      "gt_kind": "xbrl_record_json",
       "las_result_dir": "output/las_results/600193",
       "parser_reference_code": "600193"
     },
@@ -129,8 +129,8 @@
       "source": "FinAR-Bench",
       "synthetic": false,
       "pdf_path": "data/eval_dataset/dense_numerical/601117.pdf",
-      "gt_path": "data/FinAR-Bench",
-      "gt_kind": "finar_bench",
+      "gt_path": "data/eval_dataset/ground_truth/601117_gt.json",
+      "gt_kind": "xbrl_record_json",
       "las_result_dir": "output/las_results/601117",
       "parser_reference_code": "601117"
     },
@@ -141,8 +141,8 @@
       "source": "FinAR-Bench",
       "synthetic": false,
       "pdf_path": "data/eval_dataset/dense_numerical/603630.pdf",
-      "gt_path": "data/FinAR-Bench",
-      "gt_kind": "finar_bench",
+      "gt_path": "data/eval_dataset/ground_truth/603630_gt.json",
+      "gt_kind": "xbrl_record_json",
       "las_result_dir": "output/las_results/603630",
       "parser_reference_code": "603630"
     },
@@ -153,8 +153,8 @@
       "source": "FinAR-Bench",
       "synthetic": false,
       "pdf_path": "data/eval_dataset/dense_numerical/601696.pdf",
-      "gt_path": "data/FinAR-Bench",
-      "gt_kind": "finar_bench",
+      "gt_path": "data/eval_dataset/ground_truth/601696_gt.json",
+      "gt_kind": "xbrl_record_json",
       "las_result_dir": "output/las_results/601696",
       "parser_reference_code": "601696"
     },
@@ -165,8 +165,8 @@
       "source": "FinAR-Bench",
       "synthetic": false,
       "pdf_path": "data/eval_dataset/dense_numerical/600778.pdf",
-      "gt_path": "data/FinAR-Bench",
-      "gt_kind": "finar_bench",
+      "gt_path": "data/eval_dataset/ground_truth/600778_gt.json",
+      "gt_kind": "xbrl_record_json",
       "las_result_dir": "output/las_results/600778",
       "parser_reference_code": "600778"
     },
@@ -177,8 +177,8 @@
       "source": "FinAR-Bench",
       "synthetic": false,
       "pdf_path": "data/eval_dataset/dense_numerical/600679.pdf",
-      "gt_path": "data/FinAR-Bench",
-      "gt_kind": "finar_bench",
+      "gt_path": "data/eval_dataset/ground_truth/600679_gt.json",
+      "gt_kind": "xbrl_record_json",
       "las_result_dir": "output/las_results/600679",
       "parser_reference_code": "600679"
     },
@@ -189,8 +189,8 @@
       "source": "FinAR-Bench",
       "synthetic": false,
       "pdf_path": "data/eval_dataset/dense_numerical/603365.pdf",
-      "gt_path": "data/FinAR-Bench",
-      "gt_kind": "finar_bench",
+      "gt_path": "data/eval_dataset/ground_truth/603365_gt.json",
+      "gt_kind": "xbrl_record_json",
       "las_result_dir": "output/las_results/603365",
       "parser_reference_code": "603365"
     },
@@ -201,8 +201,8 @@
       "source": "FinAR-Bench",
       "synthetic": false,
       "pdf_path": "data/eval_dataset/dense_numerical/603313.pdf",
-      "gt_path": "data/FinAR-Bench",
-      "gt_kind": "finar_bench",
+      "gt_path": "data/eval_dataset/ground_truth/603313_gt.json",
+      "gt_kind": "xbrl_record_json",
       "las_result_dir": "output/las_results/603313",
       "parser_reference_code": "603313"
     },
@@ -213,8 +213,8 @@
       "source": "FinAR-Bench",
       "synthetic": false,
       "pdf_path": "data/eval_dataset/dense_numerical/603439.pdf",
-      "gt_path": "data/FinAR-Bench",
-      "gt_kind": "finar_bench",
+      "gt_path": "data/eval_dataset/ground_truth/603439_gt.json",
+      "gt_kind": "xbrl_record_json",
       "las_result_dir": "output/las_results/603439",
       "parser_reference_code": "603439"
     },
@@ -225,8 +225,8 @@
       "source": "FinAR-Bench",
       "synthetic": false,
       "pdf_path": "data/eval_dataset/dense_numerical/600130.pdf",
-      "gt_path": "data/FinAR-Bench",
-      "gt_kind": "finar_bench",
+      "gt_path": "data/eval_dataset/ground_truth/600130_gt.json",
+      "gt_kind": "xbrl_record_json",
       "las_result_dir": "output/las_results/600130",
       "parser_reference_code": "600130"
     },
@@ -237,8 +237,8 @@
       "source": "FinAR-Bench",
       "synthetic": false,
       "pdf_path": "data/eval_dataset/dense_numerical/600623.pdf",
-      "gt_path": "data/FinAR-Bench",
-      "gt_kind": "finar_bench",
+      "gt_path": "data/eval_dataset/ground_truth/600623_gt.json",
+      "gt_kind": "xbrl_record_json",
       "las_result_dir": "output/las_results/600623",
       "parser_reference_code": "600623"
     },
@@ -249,8 +249,8 @@
       "source": "FinAR-Bench",
       "synthetic": false,
       "pdf_path": "data/eval_dataset/borderless_tables/601555.pdf",
-      "gt_path": "data/FinAR-Bench",
-      "gt_kind": "finar_bench",
+      "gt_path": "data/eval_dataset/ground_truth/601555_gt.json",
+      "gt_kind": "xbrl_record_json",
       "las_result_dir": "output/las_results/601555",
       "parser_reference_code": "601555"
     },
@@ -261,8 +261,8 @@
       "source": "FinAR-Bench",
       "synthetic": false,
       "pdf_path": "data/eval_dataset/borderless_tables/601009.pdf",
-      "gt_path": "data/FinAR-Bench",
-      "gt_kind": "finar_bench",
+      "gt_path": "data/eval_dataset/ground_truth/601009_gt.json",
+      "gt_kind": "xbrl_record_json",
       "las_result_dir": "output/las_results/601009",
       "parser_reference_code": "601009"
     },
@@ -273,7 +273,7 @@
       "source": "synthetic",
       "synthetic": true,
       "pdf_path": "data/eval_dataset/borderless_tables/600569_synth.pdf",
-      "gt_path": "data/eval_dataset/borderless_tables/600569_synth_gt.json",
+      "gt_path": "data/eval_dataset/ground_truth/600569_synth_borderless_gt.json",
       "gt_kind": "synthetic_gt_json",
       "las_result_dir": "output/las_results/600569_synth_borderless",
       "parser_reference_code": null
@@ -285,7 +285,7 @@
       "source": "synthetic",
       "synthetic": true,
       "pdf_path": "data/eval_dataset/borderless_tables/603421_synth.pdf",
-      "gt_path": "data/eval_dataset/borderless_tables/603421_synth_gt.json",
+      "gt_path": "data/eval_dataset/ground_truth/603421_synth_borderless_gt.json",
       "gt_kind": "synthetic_gt_json",
       "las_result_dir": "output/las_results/603421_synth_borderless",
       "parser_reference_code": null
@@ -297,7 +297,7 @@
       "source": "synthetic",
       "synthetic": true,
       "pdf_path": "data/eval_dataset/borderless_tables/603707_synth.pdf",
-      "gt_path": "data/eval_dataset/borderless_tables/603707_synth_gt.json",
+      "gt_path": "data/eval_dataset/ground_truth/603707_synth_borderless_gt.json",
       "gt_kind": "synthetic_gt_json",
       "las_result_dir": "output/las_results/603707_synth_borderless",
       "parser_reference_code": null
@@ -309,7 +309,7 @@
       "source": "synthetic",
       "synthetic": true,
       "pdf_path": "data/eval_dataset/synthetic_multicolumn/600569_multi.pdf",
-      "gt_path": "data/eval_dataset/synthetic_multicolumn/600569_multi_gt.json",
+      "gt_path": "data/eval_dataset/ground_truth/600569_multicolumn_gt.json",
       "gt_kind": "synthetic_gt_json",
       "las_result_dir": "output/las_results/600569_multicolumn",
       "parser_reference_code": null
@@ -321,7 +321,7 @@
       "source": "synthetic",
       "synthetic": true,
       "pdf_path": "data/eval_dataset/synthetic_multicolumn/603421_multi.pdf",
-      "gt_path": "data/eval_dataset/synthetic_multicolumn/603421_multi_gt.json",
+      "gt_path": "data/eval_dataset/ground_truth/603421_multicolumn_gt.json",
       "gt_kind": "synthetic_gt_json",
       "las_result_dir": "output/las_results/603421_multicolumn",
       "parser_reference_code": null
@@ -333,10 +333,101 @@
       "source": "synthetic",
       "synthetic": true,
       "pdf_path": "data/eval_dataset/synthetic_multicolumn/603707_multi.pdf",
-      "gt_path": "data/eval_dataset/synthetic_multicolumn/603707_multi_gt.json",
+      "gt_path": "data/eval_dataset/ground_truth/603707_multicolumn_gt.json",
       "gt_kind": "synthetic_gt_json",
       "las_result_dir": "output/las_results/603707_multicolumn",
       "parser_reference_code": null
+    },
+    {
+      "sample_id": "SYNTH_001_long_document",
+      "company_code": "SYNTH_001",
+      "scene": "S5_long_documents",
+      "source": "synthetic",
+      "synthetic": true,
+      "pdf_path": "data/eval_dataset/S5_long_documents/SYNTH_001.pdf",
+      "gt_path": "data/eval_dataset/ground_truth/SYNTH_001_long_document_gt.json",
+      "gt_kind": "synthetic_gt_json",
+      "las_result_dir": "output/las_results/SYNTH_001_long_document",
+      "parser_reference_code": null,
+      "eval_role": "stress",
+      "eval_modules": [
+        "module1",
+        "long_document"
+      ],
+      "expected_parse_status": "success",
+      "notes": "Synthetic long-document stress sample with XBRL-like GT."
+    },
+    {
+      "sample_id": "anomaly_corrupted",
+      "company_code": "anomaly_corrupted",
+      "scene": "anomaly",
+      "source": "synthetic",
+      "synthetic": true,
+      "pdf_path": "data/eval_dataset/anomaly/corrupted.pdf",
+      "gt_path": "data/eval_dataset/ground_truth/anomaly_corrupted_gt.json",
+      "gt_kind": "expected_parse_failure",
+      "las_result_dir": "output/las_results/anomaly_corrupted",
+      "parser_reference_code": null,
+      "eval_role": "anomaly",
+      "eval_modules": [
+        "parse_robustness"
+      ],
+      "expected_parse_status": "failure",
+      "notes": "Corrupted PDF should be handled as an expected parse failure."
+    },
+    {
+      "sample_id": "anomaly_empty",
+      "company_code": "anomaly_empty",
+      "scene": "anomaly",
+      "source": "synthetic",
+      "synthetic": true,
+      "pdf_path": "data/eval_dataset/anomaly/empty.pdf",
+      "gt_path": "data/eval_dataset/ground_truth/anomaly_empty_gt.json",
+      "gt_kind": "expected_parse_failure",
+      "las_result_dir": "output/las_results/anomaly_empty",
+      "parser_reference_code": null,
+      "eval_role": "anomaly",
+      "eval_modules": [
+        "parse_robustness"
+      ],
+      "expected_parse_status": "failure",
+      "notes": "Zero-page PDF should be handled as an expected parse failure."
+    },
+    {
+      "sample_id": "anomaly_encrypted",
+      "company_code": "anomaly_encrypted",
+      "scene": "anomaly",
+      "source": "synthetic",
+      "synthetic": true,
+      "pdf_path": "data/eval_dataset/anomaly/encrypted.pdf",
+      "gt_path": "data/eval_dataset/ground_truth/anomaly_encrypted_gt.json",
+      "gt_kind": "expected_parse_failure",
+      "las_result_dir": "output/las_results/anomaly_encrypted",
+      "parser_reference_code": null,
+      "eval_role": "anomaly",
+      "eval_modules": [
+        "parse_robustness"
+      ],
+      "expected_parse_status": "failure",
+      "notes": "Encrypted PDF should be handled as an expected parse failure."
+    },
+    {
+      "sample_id": "anomaly_not_a_pdf",
+      "company_code": "anomaly_not_a_pdf",
+      "scene": "anomaly",
+      "source": "synthetic",
+      "synthetic": true,
+      "pdf_path": "data/eval_dataset/anomaly/not_a_pdf.pdf",
+      "gt_path": "data/eval_dataset/ground_truth/anomaly_not_a_pdf_gt.json",
+      "gt_kind": "expected_parse_failure",
+      "las_result_dir": "output/las_results/anomaly_not_a_pdf",
+      "parser_reference_code": null,
+      "eval_role": "anomaly",
+      "eval_modules": [
+        "parse_robustness"
+      ],
+      "expected_parse_status": "failure",
+      "notes": "Non-PDF payload with .pdf suffix should be handled as an expected parse failure."
     }
   ]
 }
