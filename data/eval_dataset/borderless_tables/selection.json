@@ -1,31 +1,39 @@
 {
   "scene": "borderless_tables",
   "title": "无边框表格",
-  "source": "FinAR-Bench",
-  "ground_truth": "XBRL (FinAR-Bench dev.txt/test.txt)",
-  "selection_signal": "竖线/数值比最低（少边框/无边框）",
-  "primary_metric": "borderless",
-  "count": 2,
+  "source": "FinAR-Bench + 合成",
+  "ground_truth": "XBRL",
+  "count": 5,
   "items": [
     {
       "code": "601555",
       "file": "601555.pdf",
-      "pages": 10,
-      "numeric_density": 106.3,
-      "cross_page_score": 10,
-      "bracket_negatives": 9,
-      "units": [
-        "元"
-      ]
+      "source": "FinAR-Bench",
+      "note": "真实无边框，竖线/数值比 0.17"
     },
     {
       "code": "601009",
       "file": "601009.pdf",
-      "pages": 11,
-      "numeric_density": 42.9,
-      "cross_page_score": 11,
-      "bracket_negatives": 127,
-      "units": []
+      "source": "FinAR-Bench",
+      "note": "真实无边框，竖线/数值比 1.5"
+    },
+    {
+      "code": "600569",
+      "file": "600569_gt.json",
+      "source": "合成",
+      "note": "XBRL 数据反推生成，纯空格对齐"
+    },
+    {
+      "code": "603421",
+      "file": "603421_gt.json",
+      "source": "合成",
+      "note": "XBRL 数据反推生成，纯空格对齐"
+    },
+    {
+      "code": "603707",
+      "file": "603707_gt.json",
+      "source": "合成",
+      "note": "XBRL 数据反推生成，纯空格对齐"
     }
   ]
 }

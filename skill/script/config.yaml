@@ -1,22 +1,20 @@
 las:
-  base_url: "https://operator.las.cn-shanghai.volces.com/api/v1"
-  api_key: "${LAS_API_KEY}"
-  operator_id: "las_pdf_parse_doubao"
-  operator_version: "v1"
-  timeout: 60
+  endpoint: "https://las-api.volcengineapi.com"
+  access_key: "${LAS_ACCESS_KEY}"
+  secret_key: "${LAS_SECRET_KEY}"
+  operator_id: "pdf-parse-financial"
+  operator_version: "1.0"
 
 request:
-  url: ""
+  url: "https://www.sse.com.cn/disclosure/listedinfo/announcement/c/new/2024-04-27/603421_20240427_W7ZO.pdf"
   task_id: ""
-  wait: false
-  max_polls: 20
-  poll_interval: 5.0
+  wait: true
 
 output:
-  path: "output/financial_report/las_response.json"
-  markdown_path: "output/financial_report/report.md"
-  json_path: "output/financial_report/report_structured.json"
-  numbers_path: "output/financial_report/report_numbers.json"
+  path: "output/603421_2024_annual_report/las_response.json"
+  markdown_path: "output/603421_2024_annual_report/report.md"
+  json_path: "output/603421_2024_annual_report/report_structured.json"
+  numbers_path: "output/603421_2024_annual_report/report_numbers.json"
 
 post_process:
   merge_cross_page_tables: true

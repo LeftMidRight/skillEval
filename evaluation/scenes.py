@@ -20,7 +20,6 @@ SCENE_LABELS = {
     "跨页表格": "cross_page_tables",
     "密集数值": "dense_numerical",
     "无边框表格": "borderless_tables",
-    "无边框表格（合成）": "synthetic_borderless",
     "多栏排版（合成）": "synthetic_multicolumn",
 }
 
