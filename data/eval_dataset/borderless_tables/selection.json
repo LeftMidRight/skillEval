@@ -19,19 +19,19 @@
     },
     {
       "code": "600569",
-      "file": "600569_gt.json",
+      "file": "600569_synth.pdf",
       "source": "合成",
       "note": "XBRL 数据反推生成，纯空格对齐"
     },
     {
       "code": "603421",
-      "file": "603421_gt.json",
+      "file": "603421_synth.pdf",
       "source": "合成",
       "note": "XBRL 数据反推生成，纯空格对齐"
     },
     {
       "code": "603707",
-      "file": "603707_gt.json",
+      "file": "603707_synth.pdf",
       "source": "合成",
       "note": "XBRL 数据反推生成，纯空格对齐"
     }

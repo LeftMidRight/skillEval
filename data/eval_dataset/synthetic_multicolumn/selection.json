@@ -1,14 +1,12 @@
-[
-  {
-    "code": "600569",
-    "file": "600569.pdf"
-  },
-  {
-    "code": "603421",
-    "file": "603421.pdf"
-  },
-  {
-    "code": "603707",
-    "file": "603707.pdf"
-  }
-]
+{
+  "scene": "synthetic_multicolumn",
+  "title": "多栏排版（合成）",
+  "source": "合成 (FinAR-Bench XBRL 反推)",
+  "ground_truth": "XBRL",
+  "count": 3,
+  "items": [
+    {"code": "600569", "file": "600569_multi.pdf", "note": "2 栏报纸版式"},
+    {"code": "603421", "file": "603421_multi.pdf", "note": "2 栏报纸版式"},
+    {"code": "603707", "file": "603707_multi.pdf", "note": "2 栏报纸版式"}
+  ]
+}
