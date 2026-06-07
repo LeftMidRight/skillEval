@@ -232,6 +232,7 @@ class MultiColumnPDF(FPDF):
         self._cur_col = "left"      # 当前栏: "left" | "right"
         self._cur_y = self.top_margin
         self._page_num = 0
+        self._page_dividers: dict[int, bool] = {}
 
     # ================================================================
     # 内部：分页与换栏
@@ -239,6 +240,8 @@ class MultiColumnPDF(FPDF):
 
     def _draw_divider(self):
         """当前页画分隔线（从 _col_top_y 到 usable_bottom）。"""
+        if not self.page_draws_divider(self._page_num):
+            return
         top = self.top_margin + 2
         bottom = self.page_h - self.bottom_margin
         self.set_draw_color(160, 160, 160)
@@ -264,8 +267,18 @@ class MultiColumnPDF(FPDF):
             self._draw_page_number()
         self.add_page()
         self._page_num += 1
+        self._page_dividers[self._page_num] = True
         self._cur_col = "left"
         self._cur_y = self.top_margin
+
+    def disable_current_divider(self):
+        """关闭当前页的双栏分隔线，用于通栏表格页。"""
+        if self._page_num > 0:
+            self._page_dividers[self._page_num] = False
+
+    def page_draws_divider(self, page_num: int) -> bool:
+        """返回某页是否绘制双栏分隔线。"""
+        return self._page_dividers.get(page_num, True)
 
     def _switch_to_right_col(self):
         """切换到右栏。"""
@@ -416,6 +429,7 @@ class MultiColumnPDF(FPDF):
             self._draw_divider()
             self._draw_page_number()
         self._new_page()
+        self.disable_current_divider()
         # 通栏标题
         self.set_xy(self.lm, self._cur_y)
         self.set_font("CN", "", 13)
@@ -579,6 +593,7 @@ class MultiColumnPDF(FPDF):
                 self._draw_divider()
                 self._draw_page_number()
                 self._new_page()
+                self.disable_current_divider()
                 # 重画表头
                 self.set_xy(self.lm, self._cur_y)
                 self.set_font("CN", "", 7)
