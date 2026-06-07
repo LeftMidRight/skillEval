@@ -62,9 +62,11 @@
 | 数据集 | 规模 | 用途 |
 |--------|------|------|
 | FinAR-Bench dev/test.txt | 10+90 家公司 XBRL 三张表 + 13 任务 | Ground Truth |
+| eval_dataset/manifest.json | 28 个评测样本的 canonical 清单 | 统一 sample_id / PDF / GT / LAS 结果目录 |
 | eval_dataset/cross_page_tables/ | 10 份年报 PDF | 跨页表格场景 |
 | eval_dataset/dense_numerical/ | 10 份年报 PDF | 密集数值提取场景 |
-| eval_dataset/borderless_tables/ | 2 份年报 PDF | 无边框表格场景 |
+| eval_dataset/borderless_tables/ | 5 份 PDF | 2 份真实无边框 + 3 份合成无线条 |
+| eval_dataset/synthetic_multicolumn/ | 3 份合成 PDF | 真实年报双栏专题页 |
 | eval_dataset/anomaly/ | 4 个异常文件 | 鲁棒性测试（损坏/加密/空文件/非PDF） |
 | eval_dataset/S5_long_documents/ | 1 份合成 98 页 PDF | 长文档压力测试 |
 | extracted/txt_output/ | 6 种解析器对照输出 | CER 交叉参照 |
@@ -132,7 +134,8 @@
 
 - LAS 配置文件：`skill/script/config.yaml`
 - LAS API 客户端：`skill/script/las_client.py`
-- 批量解析脚本：`scripts/batch_las_parse.py`
+- 批量解析入口：`skill/script/batch_processor.py`（URL list；保留 `_multi`/`_synth` 样本后缀）
+- 旧 25 份解析脚本：`scripts/archive/batch_las_parse_legacy.py`
 - 批量评测脚本：`scripts/batch_module1_eval.py`（v3）
 - 场景拆解脚本：`scripts/scene_breakdown.py`（v3）
 - LAS 解析结果：`output/las_results/{股票代码}/`

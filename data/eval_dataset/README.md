@@ -54,7 +54,7 @@
 - 无边框排序：`scripts/rank_borderless.py` → `output/scene_selection/borderless_rank.json`
 - 三类互斥挑选：`scripts/pick_scenes.py` → `output/scene_selection/pick30.json`
 - 候选页渲染（人工核验无边框/多栏）：`scripts/render_candidates.py` → `output/page_renders/`
-- 构建场景目录：`scripts/build_scene_selection.py` → 各 `<scene>/selection.json` + `_selection.json`
+- 旧版场景目录构建脚本已归档：`scripts/archive/build_scene_selection_legacy.py`
 
 ## 文件说明
 

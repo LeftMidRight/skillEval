@@ -2,6 +2,11 @@ output/
 testpdf/
 __pycache__/
 *.pyc
+.claude/
+sandbox/multi_preview/
+sandbox/test_multicol.pdf
+sandbox/test*.txt
+/「
 # Large binary data
 data/FinAR-Bench/pdf_data.zip
 data/FinAR-Bench/pdf_extractor_result.zip
