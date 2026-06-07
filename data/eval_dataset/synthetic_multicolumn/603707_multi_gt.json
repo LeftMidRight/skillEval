@@ -121,5 +121,117 @@
       "company": "健友股份",
       "company_code": "603707.SH"
     }
-  ]
+  ],
+  "layout_gt": {
+    "layout_type": "synthetic_multicolumn_annual_report_topic",
+    "company_code": "603707",
+    "company_name": "健友股份",
+    "reading_order": "left_column_then_right_column",
+    "pages": [
+      {
+        "page": 1,
+        "is_multicolumn": true,
+        "columns": [
+          "left",
+          "right"
+        ],
+        "sections": [
+          {
+            "id": "overview",
+            "title": "一、公司概况与经营回顾",
+            "column_sequence": [
+              "left",
+              "right"
+            ],
+            "paragraph_ids": [
+              "overview_p1",
+              "overview_p2",
+              "overview_p3",
+              "overview_p7",
+              "overview_p4",
+              "overview_p5",
+              "overview_p6",
+              "overview_p8"
+            ]
+          }
+        ]
+      },
+      {
+        "page": 2,
+        "is_multicolumn": true,
+        "columns": [
+          "left",
+          "right"
+        ],
+        "sections": [
+          {
+            "id": "operation",
+            "title": "二、业务亮点与研发投入",
+            "column_sequence": [
+              "left",
+              "right"
+            ],
+            "paragraph_ids": [
+              "operation_p1",
+              "operation_p2",
+              "operation_p3",
+              "operation_p7",
+              "operation_p4",
+              "operation_p5",
+              "operation_p6",
+              "operation_p8",
+              "operation_metric_box"
+            ]
+          }
+        ]
+      },
+      {
+        "page": 3,
+        "is_multicolumn": true,
+        "columns": [
+          "left",
+          "right"
+        ],
+        "sections": [
+          {
+            "id": "risk_outlook",
+            "title": "三、风险因素与经营展望",
+            "column_sequence": [
+              "left",
+              "right"
+            ],
+            "paragraph_ids": [
+              "risk_p1",
+              "risk_p2",
+              "risk_p3",
+              "risk_p7",
+              "risk_p4",
+              "risk_p5",
+              "risk_p6",
+              "risk_p8"
+            ]
+          }
+        ]
+      },
+      {
+        "page": 4,
+        "is_multicolumn": false,
+        "columns": [
+          "full_width"
+        ],
+        "sections": [
+          {
+            "id": "financial_summary",
+            "title": "财务摘要",
+            "column_sequence": [
+              "full_width"
+            ],
+            "paragraph_ids": [
+              "financial_summary_table"
+            ]
+          }
+        ]
+      }
+    ]
+  }
 }

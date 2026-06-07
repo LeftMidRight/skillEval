@@ -58,7 +58,7 @@
         "603707"
       ],
       "synthetic": true,
-      "note": "XBRL 数据反推生成，2 栏报纸版式；GT 即 XBRL 本身"
+      "note": "XBRL 数据反推生成，真实年报双栏专题页；GT 包含 XBRL 与 layout_gt"
     },
     "synthetic_borderless": {
       "title": "无边框表格（合成）",

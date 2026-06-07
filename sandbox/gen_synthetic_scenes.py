@@ -17,6 +17,7 @@ from __future__ import annotations
 import json
 import re
 import sys
+import argparse
 from pathlib import Path
 from typing import Any
 
@@ -316,6 +317,96 @@ class MultiColumnPDF(FPDF):
         self.set_draw_color(180, 180, 180)
         self.set_line_width(0.15)
         self.line(self.lm, self._cur_y, self.page_w - self.rm, self._cur_y)
+        self._cur_y += 4
+
+    def start_topic_document(self, title: str, subtitle: str):
+        """开启真实年报专题页。"""
+        self._new_page()
+        self.full_title(title)
+        self.full_subtitle(subtitle)
+
+    def current_page_number(self) -> int:
+        """返回当前 PDF 页码（1-based）。"""
+        return self._page_num
+
+    def topic_section(
+        self,
+        title: str,
+        left_paragraphs: list[str],
+        right_paragraphs: list[str],
+        note_title: str | None = None,
+        note_lines: list[str] | None = None,
+        new_page: bool = False,
+    ):
+        """渲染一页真实年报双栏专题内容。
+
+        每个专题页采用通栏小节标题 + 左右两栏正文；右栏不依赖左栏溢出，
+        从而避免右栏空白，更接近年报专题页排版。
+        """
+        if new_page:
+            self._new_page()
+
+        self.set_xy(self.lm, self._cur_y)
+        self.set_font("CN", "", 12)
+        self.cell(self.page_w - self.lm - self.rm, 8, title, new_x="LMARGIN", new_y="NEXT")
+        self._cur_y = self.get_y() + 1
+        self.set_draw_color(150, 150, 150)
+        self.set_line_width(0.18)
+        self.line(self.lm, self._cur_y, self.page_w - self.rm, self._cur_y)
+        self._cur_y += 5
+
+        top_y = self._cur_y
+        self._cur_col = "left"
+        self._cur_y = top_y
+        self._write_column_paragraphs(left_paragraphs)
+        left_end = self._cur_y
+
+        self._cur_col = "right"
+        self._cur_y = top_y
+        self._write_column_paragraphs(right_paragraphs)
+        if note_title and note_lines:
+            self.note_box(note_title, note_lines)
+        right_end = self._cur_y
+
+        self._cur_col = "left"
+        self._cur_y = max(left_end, right_end) + 4
+
+    def _write_column_paragraphs(self, paragraphs: list[str]):
+        """在当前栏连续写入段落。"""
+        for paragraph in paragraphs:
+            self.flow_paragraph(paragraph, size=9.2, first_indent=5)
+
+    def note_box(self, title: str, lines: list[str]):
+        """在当前栏写入真实年报常见的重点摘要框。"""
+        col_x = self.left_x if self._cur_col == "left" else self.right_x
+        box_h = 10 + len(lines) * 5
+        col_bottom = self.page_h - self.bottom_margin
+
+        if self._cur_y + box_h > col_bottom:
+            if self._cur_col == "left":
+                self._switch_to_right_col()
+                col_x = self.right_x
+            else:
+                self._draw_divider()
+                self._draw_page_number()
+                self._new_page()
+                col_x = self.left_x
+
+        self.set_xy(col_x, self._cur_y)
+        self.set_draw_color(155, 155, 155)
+        self.set_fill_color(246, 246, 246)
+        self.rect(col_x, self._cur_y, self.col_w, box_h, style="DF")
+
+        self.set_xy(col_x + 3, self._cur_y + 2)
+        self.set_font("CN", "", 8.5)
+        self.cell(self.col_w - 6, 4, title)
+
+        self._cur_y += 8
+        self.set_font("CN", "", 7.5)
+        for line in lines:
+            self.set_xy(col_x + 3, self._cur_y)
+            self.cell(self.col_w - 6, 4, line[:40])
+            self._cur_y += 5
         self._cur_y += 4
 
     def full_section_break(self, title: str):
@@ -691,99 +782,230 @@ COMPANY_REPORT_BODY = {
 }
 
 
-def generate_multicolumn(code: str, xbrl: dict):
+def _topic_sections_for_company(code: str) -> list[dict[str, Any]]:
+    """构造真实年报双栏专题页内容。"""
+    name = COMPANY_NAMES[code]
+    body = COMPANY_REPORT_BODY[code]
+    snippet = COMPANY_SNIPPETS[code]
+    long_desc = COMPANY_LONG_DESC[code]
+
+    sections = [
+        {
+            "id": "overview",
+            "title": "一、公司概况与经营回顾",
+            "left": [
+                ("overview_p1", body[0]),
+                ("overview_p2", body[1]),
+                ("overview_p3", f"从年度报告口径看，{snippet} 公司围绕主营业务稳定运行、重点客户维护和组织效率提升开展经营管理，报告期内主要业务模式和收入来源保持连续。"),
+            ],
+            "right": [
+                ("overview_p4", body[2]),
+                ("overview_p5", long_desc),
+                ("overview_p6", "管理层认为，稳定的产业基础、持续的客户合作和围绕主业形成的技术积累，是公司穿越行业周期的重要支撑。公司将继续把资源投向核心产品、关键项目和现金流质量改善。"),
+            ],
+        },
+        {
+            "id": "operation",
+            "title": "二、业务亮点与研发投入",
+            "left": [
+                ("operation_p1", body[3]),
+                ("operation_p2", body[4]),
+                ("operation_p3", "报告期内，公司将年度经营计划分解到市场、研发、生产和供应链等关键环节，通过项目制管理跟踪重点事项进度。各业务单元围绕客户需求变化及时调整交付节奏，提升订单履约能力。"),
+            ],
+            "right": [
+                ("operation_p4", body[5]),
+                ("operation_p5", "公司持续完善研发立项、预算控制和成果转化机制，重点项目由管理层定期复盘。研发团队围绕产品可靠性、成本控制和场景适配开展专项攻关，形成多项可复用技术成果。"),
+                ("operation_p6", "在供应链管理方面，公司强化核心原材料采购计划和库存周转管理，提升关键供应商协同效率。针对市场波动，公司建立滚动预测机制，降低交付周期和成本波动对经营结果的影响。"),
+            ],
+            "note_title": "年度经营摘要",
+        },
+        {
+            "id": "risk_outlook",
+            "title": "三、风险因素与经营展望",
+            "left": [
+                ("risk_p1", body[6]),
+                ("risk_p2", "公司面临的主要风险包括宏观需求波动、行业竞争加剧、原材料或关键组件价格变化、技术路线迭代以及海外市场政策环境变化。公司将通过预算管理、客户结构优化和研发储备降低不确定性影响。"),
+                ("risk_p3", "内部控制方面，公司继续完善授权审批、资金管理、合同管理和信息披露流程。董事会、监事会及管理层按规则履职，重大经营事项均履行必要审议程序。"),
+            ],
+            "right": [
+                ("risk_p4", body[7]),
+                ("risk_p5", "展望下一年度，公司将坚持稳健经营原则，在保持主营业务韧性的同时推进产品升级、市场拓展和成本精细化管理。管理层将重点关注现金流质量、盈利能力恢复和可持续投入能力。"),
+                ("risk_p6", "本专题页为合成多栏排版样本，文本顺序遵循左栏读完后进入右栏的真实年报阅读习惯。财务数据仍以 XBRL 真值为准，后续分析不得脱离 GT 中的标准表格和任务答案。"),
+            ],
+        },
+    ]
+    sections[0]["left"].append((
+        "overview_p7",
+        f"报告期内，{name}围绕年度经营目标持续优化组织机制，强化预算约束、项目复盘和重点客户跟踪。公司管理层按月分析订单、成本、回款和存货周转情况，及时调整资源投放节奏。",
+    ))
+    sections[0]["right"].append((
+        "overview_p8",
+        "在信息披露和投资者沟通方面，公司保持审慎、及时和一致的原则，围绕经营进展、行业变化和重大事项向市场传递稳定预期。相关安排有助于外部使用者理解公司年度经营脉络。",
+    ))
+    sections[1]["left"].append((
+        "operation_p7",
+        "为提升经营质量，公司进一步细化产品、项目和客户维度的经营分析，推动生产计划、采购计划和销售计划联动。重点项目由业务部门、财务部门和管理层共同跟踪，确保资源投入与收益目标相匹配。",
+    ))
+    sections[1]["right"].append((
+        "operation_p8",
+        "公司还通过数字化系统沉淀运营数据，提升对交付周期、质量波动和成本变化的识别能力。相关数据被用于改进预算编制、绩效考核和供应链协同，形成持续改进闭环。",
+    ))
+    sections[2]["left"].append((
+        "risk_p7",
+        "针对外部环境变化，公司将持续关注主要客户需求、行业政策、汇率和原材料价格等因素。管理层将根据经营计划执行情况动态调整预算，保持资产负债结构和现金流安排的稳健性。",
+    ))
+    sections[2]["right"].append((
+        "risk_p8",
+        "未来，公司将继续围绕主业能力建设开展投资和管理改善，优先支持能够提升客户粘性、产品质量和经营效率的项目。上述安排将作为下一年度经营计划的重要组成部分。",
+    ))
+    return sections
+
+
+def _new_layout_gt(code: str, company_name: str) -> dict[str, Any]:
+    return {
+        "layout_type": "synthetic_multicolumn_annual_report_topic",
+        "company_code": code,
+        "company_name": company_name,
+        "reading_order": "left_column_then_right_column",
+        "pages": [],
+    }
+
+
+def _append_layout_section(
+    layout_gt: dict[str, Any],
+    page: int,
+    section_id: str,
+    title: str,
+    paragraph_ids: list[str],
+):
+    page_entry = next((p for p in layout_gt["pages"] if p["page"] == page), None)
+    if page_entry is None:
+        page_entry = {
+            "page": page,
+            "is_multicolumn": True,
+            "columns": ["left", "right"],
+            "sections": [],
+        }
+        layout_gt["pages"].append(page_entry)
+
+    page_entry["sections"].append({
+        "id": section_id,
+        "title": title,
+        "column_sequence": ["left", "right"],
+        "paragraph_ids": paragraph_ids,
+    })
+
+
+def _find_row(sections: list[tuple[str, list[list[str]]]], item_name: str) -> list[str] | None:
+    for _, rows in sections:
+        for row in rows[1:]:
+            if row and row[0] == item_name:
+                return row
+    return None
+
+
+def _build_metric_box_lines(code: str, sections: list[tuple[str, list[list[str]]]]) -> list[str]:
+    lines: list[str] = []
+    for item in ["营业收入", "净利润", "资产总计"]:
+        row = _find_row(sections, item)
+        if row and len(row) >= 2:
+            lines.append(f"{item}：{row[1]}")
+    if code == "600569":
+        lines.append("专题关注：产品结构升级与绿色制造")
+    elif code == "603421":
+        lines.append("专题关注：电力物联网与双模通信")
+    elif code == "603707":
+        lines.append("专题关注：制剂出口与质量合规")
+    return lines[:4]
+
+
+def _build_financial_summary_rows(sections: list[tuple[str, list[list[str]]]]) -> list[list[str]]:
+    rows = [["指标", "2023年", "2022年"]]
+    for item in ["营业收入", "营业成本", "净利润", "资产总计", "负债合计", "经营活动现金流量净额"]:
+        row = _find_row(sections, item)
+        if row and len(row) >= 3:
+            rows.append([row[0], row[1], row[2]])
+    return rows
+
+
+def _add_financial_summary_page(
+    pdf: MultiColumnPDF,
+    sections: list[tuple[str, list[list[str]]]],
+    layout_gt: dict[str, Any],
+):
+    pdf.full_section_break("财务摘要")
+    page = pdf.current_page_number()
+    rows = _build_financial_summary_rows(sections)
+    pdf.full_span_table("关键财务摘要", rows, max_rows=12)
+    layout_gt["pages"].append({
+        "page": page,
+        "is_multicolumn": False,
+        "columns": ["full_width"],
+        "sections": [
+            {
+                "id": "financial_summary",
+                "title": "财务摘要",
+                "column_sequence": ["full_width"],
+                "paragraph_ids": ["financial_summary_table"],
+            }
+        ],
+    })
+
+
+def generate_multicolumn(code: str, xbrl: dict) -> dict[str, Any]:
     name = COMPANY_NAMES.get(code, code)
     sections = parse_xbrl_sections(xbrl["table"])
-    paragraphs = COMPANY_REPORT_BODY.get(code, [])
-
-    # 按表名索引
-    tables_by_name: dict[str, list[list[str]]] = {}
-    for title, rows in sections:
-        tables_by_name[title] = rows
-
-    income_rows = tables_by_name.get("利润表", [])
-    balance_rows = tables_by_name.get("资产负债表", [])
-    cashflow_rows = tables_by_name.get("现金流量表", [])
+    topic_sections = _topic_sections_for_company(code)
 
     pdf = MultiColumnPDF(name, code)
+    layout_gt = _new_layout_gt(code, name)
 
-    # ================================================================
-    # 第 1 页起始：通栏标题 + 文字流排
-    # ================================================================
-    pdf._new_page()
-    pdf.full_title(f"{name} 2023 年度报告")
-    pdf.full_subtitle("上海证券交易所公开披露  |  发表时间：2024年4月  |  证券代码：{0}.SH".format(code))
+    pdf.start_topic_document(
+        f"{name} 2023 年度报告专题节选",
+        f"管理层讨论与分析  |  证券代码：{code}.SH  |  合成双栏排版样本",
+    )
 
-    # 左栏起：报告正文段落自然流排（左栏→右栏→翻页续）
-    pdf.flow_heading("一、公司概况与经营回顾", level=1)
-    for para in paragraphs[:4]:
-        pdf.flow_paragraph(para)
+    for idx, section in enumerate(topic_sections):
+        pdf.topic_section(
+            section["title"],
+            [text for _, text in section["left"]],
+            [text for _, text in section["right"]],
+            note_title=section.get("note_title"),
+            note_lines=_build_metric_box_lines(code, sections) if section.get("note_title") else None,
+            new_page=idx > 0,
+        )
+        paragraph_ids = [pid for pid, _ in section["left"]] + [pid for pid, _ in section["right"]]
+        if section.get("note_title"):
+            paragraph_ids.append("operation_metric_box")
+        _append_layout_section(
+            layout_gt,
+            pdf.current_page_number(),
+            section["id"],
+            section["title"],
+            paragraph_ids,
+        )
 
-    # 关键财务数据小结表（通栏）
-    pdf.full_section_break("关键财务数据概览")
-    key_rows = [["指标", "2023年", "2022年", "同比变动"]]
-    for r in income_rows:
-        if len(r) >= 3:
-            item = r[0]
-            if any(kw in item for kw in ["营业收入", "营业成本", "净利润", "利润总额"]):
-                change = ""
-                if len(r) >= 4:
-                    change = r[3] if r[3] else ""
-                key_rows.append(r[:3] + [change])
-    # 补充资产负债率等
-    for r in balance_rows:
-        if len(r) >= 3 and "资产总计" in r[0]:
-            key_rows.append([r[0], r[1], r[2] if len(r) > 2 else ""])
-
-    pdf.full_span_table("合并关键财务指标", key_rows, max_rows=15)
-
-    # ================================================================
-    # 继续流排文字
-    # ================================================================
-    pdf.flow_heading("二、业务亮点与研发投入", level=1)
-    for para in paragraphs[4:6]:
-        pdf.flow_paragraph(para)
-
-    # ================================================================
-    # 三大报表（通栏大表）
-    # ================================================================
-    if income_rows:
-        pdf.full_section_break("合并利润表")
-        pdf.full_span_table("合并利润表（摘要）", _pick_key_rows(income_rows, 18), max_rows=20)
-
-    if balance_rows:
-        pdf.full_section_break("合并资产负债表")
-        pdf.full_span_table("合并资产负债表（摘要）", _pick_key_rows(balance_rows, 25), max_rows=27)
-
-    if cashflow_rows:
-        pdf.full_section_break("合并现金流量表")
-        pdf.full_span_table("合并现金流量表（摘要）", _pick_key_rows(cashflow_rows, 18), max_rows=20)
-
-    # ================================================================
-    # 续排其余文字
-    # ================================================================
-    pdf.flow_heading("三、公司治理与内部控制", level=1)
-    for para in paragraphs[6:7]:
-        pdf.flow_paragraph(para)
-
-    pdf.flow_heading("四、利润分配预案", level=1)
-    for para in paragraphs[7:8]:
-        pdf.flow_paragraph(para)
-
-    # 完成最后一页
+    _add_financial_summary_page(pdf, sections, layout_gt)
     pdf.finalize()
 
     out_path = MULTICOLUMN_DIR / f"{code}_multi.pdf"
     out_path.parent.mkdir(parents=True, exist_ok=True)
     pdf.output(str(out_path))
     print(f"  MultiColumn PDF → {out_path}")
+    return layout_gt
 
 
 # ---------------------------------------------------------------------------
 # Ground Truth 文件生成
 # ---------------------------------------------------------------------------
 
-def save_gt(code: str, xbrl: dict, scene_dir: Path, suffix: str = ""):
+def save_gt(
+    code: str,
+    xbrl: dict,
+    scene_dir: Path,
+    suffix: str = "",
+    layout_gt: dict[str, Any] | None = None,
+):
     """为合成 PDF 保存 XBRL GT。
 
     格式与现有 eval_dataset 对齐：
@@ -796,6 +1018,8 @@ def save_gt(code: str, xbrl: dict, scene_dir: Path, suffix: str = ""):
         "xbrl_table": xbrl["table"],
         "instances": xbrl.get("instances", []),
     }
+    if layout_gt is not None:
+        gt["layout_gt"] = layout_gt
     out_path = scene_dir / f"{stem}_gt.json"
     out_path.write_text(json.dumps(gt, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"  GT saved → {out_path}")
@@ -832,7 +1056,7 @@ def update_selection():
         "count": len(SELECTED),
         "codes": sorted(SELECTED),
         "synthetic": True,
-        "note": "XBRL 数据反推生成，2 栏报纸版式；GT 即 XBRL 本身",
+        "note": "XBRL 数据反推生成，真实年报双栏专题页；GT 包含 XBRL 与 layout_gt",
     }
     sel["total_pdf_count"] = (
         sum(s["count"] for s in sel["scenes"].values())
@@ -847,9 +1071,19 @@ def update_selection():
 # ---------------------------------------------------------------------------
 
 def main():
+    parser = argparse.ArgumentParser(description="Generate synthetic eval_dataset scene PDFs.")
+    parser.add_argument(
+        "--scene",
+        choices=["all", "borderless", "multicolumn"],
+        default="all",
+        help="选择生成全部场景、仅无边框场景或仅多栏场景。",
+    )
+    args = parser.parse_args()
+
     print("=" * 60)
     print("Generating Synthetic Scene PDFs")
     print("=" * 60)
+    print(f"Scene: {args.scene}")
 
     # Setup dirs
     BORDERLESS_DIR.mkdir(parents=True, exist_ok=True)
@@ -861,16 +1095,19 @@ def main():
 
         print(f"  XBRL loaded: {len(xbrl.get('instances', []))} task instances")
 
-        # Borderless
-        generate_borderless(code, xbrl)
-        save_gt(code, xbrl, BORDERLESS_DIR, suffix="_synth")
+        if args.scene in {"all", "borderless"}:
+            # Borderless
+            generate_borderless(code, xbrl)
+            save_gt(code, xbrl, BORDERLESS_DIR, suffix="_synth")
 
-        # Multi-column
-        generate_multicolumn(code, xbrl)
-        save_gt(code, xbrl, MULTICOLUMN_DIR, suffix="_multi")
+        if args.scene in {"all", "multicolumn"}:
+            # Multi-column
+            layout_gt = generate_multicolumn(code, xbrl)
+            save_gt(code, xbrl, MULTICOLUMN_DIR, suffix="_multi", layout_gt=layout_gt)
 
     update_selection()
-    print("\nDone: 3 companies × 2 scenes = 6 PDFs + GT")
+    scene_count = 2 if args.scene == "all" else 1
+    print(f"\nDone: {len(SELECTED)} companies × {scene_count} scene(s)")
 
 
 if __name__ == "__main__":
