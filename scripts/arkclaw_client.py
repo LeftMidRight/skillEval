@@ -32,6 +32,7 @@ ARKCLAW_BASE_URL = os.environ.get(
     "https://33g1v5uze124g6k70bpe0lkg5.arkclaw-dashboard.cn-shanghai.volcapig.com",
 )
 ARKCLAW_TOKEN = os.environ.get("ARKCLAW_TOKEN", "")
+ARKCLAW_COOKIE = os.environ.get("ARKCLAW_COOKIE", "")
 
 
 class ArkClawClient:
@@ -42,6 +43,7 @@ class ArkClawClient:
     Args:
         base_url: ArkClaw 实例的 HTTPS 地址（不含路径）。
         token: Gateway Bearer token（从环境变量或 ArkClaw 控制面板获取）。
+        cookie: Cookie 认证（某些 volcapig 部署使用 Cookie 而非 Bearer）。
         model: 目标 Skill/Agent，如 "openclaw/default" 或 "openclaw/<agentId>"。
     """
 
@@ -49,16 +51,20 @@ class ArkClawClient:
         self,
         base_url: str = ARKCLAW_BASE_URL,
         token: str = ARKCLAW_TOKEN,
+        cookie: str = "",
         model: str = "openclaw/default",
     ):
         self.base_url = base_url.rstrip("/")
         self.token = token
+        self.cookie = cookie or os.environ.get("ARKCLAW_COOKIE", "")
         self.model = model
 
     def _headers(self) -> dict[str, str]:
         h = {"Content-Type": "application/json"}
         if self.token:
             h["Authorization"] = f"Bearer {self.token}"
+        if self.cookie:
+            h["Cookie"] = self.cookie
         return h
 
     def list_models(self) -> dict[str, Any]:
@@ -187,12 +193,14 @@ def main():
     parser.add_argument("--session", default=None, help="会话 ID（相同 ID 共享上下文）")
     parser.add_argument("--base-url", default=None, help="覆盖 ArkClaw 实例 URL")
     parser.add_argument("--token", default=None, help="覆盖 Bearer token")
+    parser.add_argument("--cookie", default=None, help="Cookie 认证头（某些 volcapig 部署使用 Cookie）")
 
     args = parser.parse_args()
 
     client = ArkClawClient(
         base_url=args.base_url or ARKCLAW_BASE_URL,
         token=args.token or ARKCLAW_TOKEN,
+        cookie=args.cookie or ARKCLAW_COOKIE,
         model=f"openclaw/{args.skill}" if args.skill else "openclaw/default",
     )
 
