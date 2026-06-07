@@ -31,36 +31,24 @@
 
 ---
 
-## 评测框架（4 模块 + 打分模型 + 下游验证 + 行业调研）
+## 评测框架（3 模块 + 异常兜底）
 
 ```
-总分 = 加权平均（1~10 分制）
+模块 1: 内容还原（Content Fidelity）
+  ├── 1.1 文本准确率（CER vs 6 parsers + Mineru baseline）
+  ├── 1.2 表格还原度（XBRL Item Recall + Mineru TEDS/Cell F1）
+  ├── 1.3 数值提取率（XBRL Recall + Mineru Jaccard）
+  └── 1.4 跨页表格连续性（合并成功率 + 表头保留率）
 
-模块 1: 内容还原度（Content Fidelity）—— 30%
-  ├── 1.1 文本准确率（CER vs Mineru）
-  ├── 1.2 表格还原度（TEDS + Cell F1 vs XBRL）
-  └── 1.3 数值匹配率（Precision/Recall/F1 vs XBRL）
-  └── 1.4 场景拆解（跨页/密集数值/无边框场景下各指标变化）
+模块 2: 结构保真（Structure Preservation）— 全部 LLM-as-Judge
+  └── 2.1 阅读顺序（页内三维度评分 + 跨页连续性判断）
 
-模块 2: 结构组织度（Structure Quality）—— 20%
-  ├── 2.1 页面装饰密度（页码/重复页眉/签名栏占比）
-  ├── 2.2 跨页表格完整性（跨页表是否被拼回连续整体）
-  └── 2.3 关键节段覆盖（资产负债表/利润表/现金流量表是否齐全）
-  └── 定义：PDF 物理页面结构 → 文档逻辑结构的转换质量
+模块 3: 下游可用性（Downstream Utility）— 全部 LLM-as-Judge
+  ├── fact: LLM 提取数值 → 与 XBRL GT 对比（1% 容差）
+  ├── indicator: LLM 计算指标 → 与 XBRL GT 对比（2% 容差）
+  └── reasoning: LLM 0/1 判断 → 与 GT 对比
 
-模块 3: 鲁棒性与边界（Robustness & Edge Cases）—— 25%
-  ├── 3.1 异常文件处理（损坏/加密/空文件/非PDF）
-  ├── 3.2 极端排版场景（跨页/无边框/密集数值专项指标）
-  └── 3.3 语言支持（中英混排、纯英文、繁体中文）← 需补数据
-
-模块 4: 端到端业务可用性（End-to-End Utility）—— 25%
-  ├── 4.1 下游任务准确率（Fact/Indicator/Reasoning via FinAR-Bench 1300 任务）
-  └── 4.2 场景衰减分析（跨页/密集数值/无边框场景下的任务准确率变化）
-
-独立验证: FinAR-Bench 13 任务下游评测
-  ├── 用 LAS 输出 Markdown 作为 LLM 上下文
-  ├── 逐题问答，LLM 答案 vs XBRL ground_truth
-  └── 按任务类型（fact/indicator/reasoning）和场景分组
+异常兜底: 非法输入 / 素材缺失 / 超时等
 
 行业调研: 第零章
   ├── 主流方案横向对比（Mineru/pdfplumber/PaddleOCR/Nougat/Marker）
@@ -148,6 +136,9 @@
 - 批量评测脚本：`scripts/batch_module1_eval.py`（v3）
 - 场景拆解脚本：`scripts/scene_breakdown.py`（v3）
 - LAS 解析结果：`output/las_results/{股票代码}/`
-- 评测模块（v3）：`evaluation/module1/`、`evaluation/module2/`、`evaluation/module3/`
+- 评测模块（v3）：
+  - `evaluation/module1/` 内容还原（含跨页表格连续性）
+  - `evaluation/module2/` 结构保真（LLM-as-Judge 阅读顺序）
+  - `evaluation/module3/` 下游可用性（LLM-as-Judge 三类任务）
 - 共用工具函数：`module1/utils.py`
 - 评测方案文档：`docs/evaluation_plan_v3.md`

@@ -32,9 +32,9 @@
 评测分为 **三个模块 + 异常兜底**，各自独立评测和报告：
 
 ```
-Module 1: 内容还原    文本准确率 / 表格还原度 / 数值提取率
-Module 2: 结构保真    跨页连续性 / 阅读顺序
-Module 3: 下游可用性  FinAR-Bench 13 任务准确率
+Module 1: 内容还原    文本准确率 / 表格还原度 / 数值提取率 / 跨页表格连续性
+Module 2: 结构保真    阅读顺序（LLM-as-Judge）
+Module 3: 下游可用性  FinAR-Bench 13 任务准确率（LLM-as-Judge）
 Anomaly: 异常兜底     非法输入 / 素材缺失 / 超时等
 ```
 
@@ -120,15 +120,9 @@ XBRL Recall: 0.98（180 个 XBRL 数值，177 个被找到）
 Mineru Jaccard: 0.72（LAS 和 Mineru 数值重合度）
 ```
 
----
+### 1.4 跨页表格连续性
 
-## 四、Module 2 — 结构保真（Structure Preservation）
-
-> 测：PDF 的物理页面是否被转换为文档的逻辑结构。
-
-### 2.1 跨页表格连续性
-
-**仅对跨页表格场景（10 家）计算**。
+**仅对跨页表格场景（10 家）计算**，但代码对所有 22 家统一执行。
 
 **方法**：
 1. 用 XBRL 表名匹配，定位 LAS 合并后 markdown 中三张核心财报表
@@ -142,7 +136,14 @@ Mineru Jaccard: 0.72（LAS 和 Mineru 数值重合度）
 | 合并成功率 | 三张核心表中以单一 `<table>` 出现的比例 |
 | 表头保留率 | 跨页后 `<thead>` 内容无丢失的比例 |
 
-### 2.2 阅读顺序
+---
+
+## 四、Module 2 — 结构保真（Structure Preservation）
+
+> 测：PDF 的物理页面是否被转换为文档的逻辑结构。
+> **本模块全部使用 LLM-as-Judge。**
+
+### 2.1 阅读顺序
 
 **覆盖范围**：全部 22 份 PDF，每份所有页面，共约 280 页。
 
@@ -373,16 +374,16 @@ Module 1 内容还原
   XBRL Number Recall:  0.xx
   Mineru Number Jaccard: 0.xx
 
-Module 2 结构保真
   合并成功率:  3/3 张核心表为单一 <table>
   表头保留率:  3/3 表头完整
 
+Module 2 结构保真（LLM-as-Judge）
   页内流向正确率:  x/x 页
   元素完整率:      x/x 页
   噪声侵入页数:    x/x 页
   跨页连续率:      x/x 页对
 
-Module 3 下游可用性
+Module 3 下游可用性（LLM-as-Judge）
   Fact 准确率:     x/6
   Indicator 准确率: x/6
   Reasoning 准确率: x/12 条件
@@ -407,8 +408,10 @@ Module 3 下游可用性
 | 所有指标映射 1-10 分 | 保留原始指标值 | 1-10 映射导致分数集中 |
 | 表格仅对比 XBRL | 增加 Mineru 作为第二参照系 | XBRL 与 LAS 输出体量不对等 |
 | 数值 F1 混合 Precision/Recall | 拆分 XBRL Recall + Mineru Jaccard | Precision 罚 LAS 做多了 |
+| 模块 2 跨页连续性 | 迁入 Module 1（内容还原维度） | 跨页合并不完整是内容问题，不是结构问题 |
 | 模块 2 噪声密度 | 删除（无区分度） | — |
 | 模块 2 元素识别 | 删除（无区分度） | — |
+| Module 2 仅保留阅读顺序 | 全部 LLM-as-Judge | 减少混合方法，身份更清晰 |
 | CER 仅对比 Mineru | 六解析器中位 CER + Mineru 基线 | 单一参照有偏好风险 |
 | 模块 3 异常场景 | 独立异常兜底测试 | 与数据无关，单独构造 |
 | 模块 4 端到端 | Module 3：FinAR-Bench 13 任务下游评测 | 直接测"能不能用" |
@@ -420,8 +423,8 @@ Module 3 下游可用性
 | 阶段 | 内容 | 依赖 |
 |------|------|------|
 | 1 | 新 22 家跑 LAS 解析 | `batch_processor.py` |
-| 2 | Module 1 — 文本/表格/数值评测 | 改造现有 module1 代码 |
-| 3 | Module 2 — 跨页连续性 + 阅读顺序（LLM-as-Judge） | 新写 |
+| 2 | Module 1 — 文本/表格/数值/跨页连续性评测 | 改造现有 module1 代码 |
+| 3 | Module 2 — 阅读顺序（LLM-as-Judge） | 新写 |
 | 4 | Module 3 — FinAR-Bench 13 任务（全部 LLM-as-Judge） | 新写 |
 | 5 | 异常兜底测试 | 构造异常文件 |
 | 6 | 报告生成（按场景分组） | 汇总脚本 |
@@ -432,6 +435,7 @@ Module 3 下游可用性
 
 | 模块 | 子任务 | 用 LLM？ | 调用量 | 类型 |
 |------|--------|:--:|------|------|
+| Module 1 | 跨页表格连续性 | ✗ | — | 规则匹配 |
 | Module 2 | 阅读顺序（页内） | ✓ | ~280 页 | 图片+文字 |
 | Module 2 | 阅读顺序（跨页） | ✓ | ~258 页对 | 图片+文字 |
 | Module 3 | fact | ✓ | 22 家 | 文本问答（提取数值） |

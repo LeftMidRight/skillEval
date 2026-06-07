@@ -1,4 +1,4 @@
-"""Module 2.1: 跨页表格连续性。
+"""Module 1.4: 跨页表格连续性。
 
 检查合并后的 LAS 输出中，三张核心财报表是否各以单一 <table> 出现。
 """
@@ -6,13 +6,7 @@
 from __future__ import annotations
 
 import re
-import sys
-from pathlib import Path
 from typing import Any
-
-PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
-sys.path.insert(0, str(PROJECT_ROOT))
-from module1.utils import parse_html_tables
 
 
 # 三张核心表标题关键词

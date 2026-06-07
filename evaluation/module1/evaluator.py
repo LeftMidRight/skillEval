@@ -14,6 +14,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 from module1.utils import get_xbrl_for_company, load_xbrl_dataset
 
+from .cross_page import evaluate_cross_page_continuity
 from .number_accuracy import evaluate_number_accuracy
 from .table_fidelity import compute_mineru_fidelity, compute_xbrl_item_recall
 from .text_accuracy import evaluate_text_accuracy
@@ -74,6 +75,9 @@ def evaluate_company(
     # ---- 1.3 数值提取率 ----
     number_result = evaluate_number_accuracy(las_markdown, xbrl_record, company_code)
 
+    # ---- 1.4 跨页表格连续性 ----
+    cross_page_result = evaluate_cross_page_continuity(las_markdown)
+
     return {
         "company_code": company_code,
         "text_accuracy": text_result,
@@ -82,6 +86,7 @@ def evaluate_company(
             "mineru_fidelity": mineru_fidelity,
         },
         "number_accuracy": number_result,
+        "cross_page_continuity": cross_page_result,
     }
 
 
