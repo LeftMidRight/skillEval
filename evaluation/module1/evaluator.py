@@ -13,6 +13,7 @@ from typing import Any
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 from module1.utils import get_xbrl_for_company, load_xbrl_dataset
+from evaluation.scenes import get_scene_label
 
 from .cross_page import evaluate_cross_page_continuity
 from .number_accuracy import evaluate_number_accuracy
@@ -76,10 +77,13 @@ def evaluate_company(
     number_result = evaluate_number_accuracy(las_markdown, xbrl_record, company_code)
 
     # ---- 1.4 跨页表格连续性 ----
-    cross_page_result = evaluate_cross_page_continuity(las_markdown)
+    cross_page_result = evaluate_cross_page_continuity(las_markdown, company_code)
+
+    scene = get_scene_label(company_code)
 
     return {
         "company_code": company_code,
+        "scene": scene,
         "text_accuracy": text_result,
         "table_fidelity": {
             "xbrl_item_recall": xbrl_recall,

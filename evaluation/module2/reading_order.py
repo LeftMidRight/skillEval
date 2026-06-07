@@ -17,6 +17,7 @@ import fitz  # PyMuPDF
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 from evaluation.llm_client import LLMClient
+from evaluation.scenes import get_scene_label
 
 
 # ============================================================================
@@ -318,8 +319,11 @@ def evaluate_reading_order(
         "cross_page_rate": round(continuous_cross / total_cross, 3) if total_cross > 0 else 0.0,
     }
 
+    scene = get_scene_label(company_code)
+
     return {
         "company_code": company_code,
+        "scene": scene,
         "page_level": page_results,
         "cross_page": cross_results,
         "summary": summary,

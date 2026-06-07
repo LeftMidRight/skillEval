@@ -1,12 +1,17 @@
 """Module 1.4: 跨页表格连续性。
 
 检查合并后的 LAS 输出中，三张核心财报表是否各以单一 <table> 出现。
+
+注意：此指标仅对跨页表格场景（10 家）有区分意义。
+对密集数值/无边框表格场景的公司，合并成功率接近 100% 是预期结果。
 """
 
 from __future__ import annotations
 
 import re
 from typing import Any
+
+from evaluation.scenes import get_scene_label
 
 
 # 三张核心表标题关键词
@@ -36,6 +41,7 @@ def _find_core_table_titles(las_markdown: str) -> dict[str, list[int]]:
 
 def evaluate_cross_page_continuity(
     las_markdown: str,
+    company_code: str = "",
 ) -> dict[str, Any]:
     """评测跨页表格连续性。
 
@@ -43,11 +49,18 @@ def evaluate_cross_page_continuity(
     1. 找到 las_markdown 中紧跟在核心报表标题后的表格
     2. 检查每张报表是否只有一个 <table>（= 合并成功）
 
+    Args:
+        las_markdown: LAS 输出的合并后 markdown。
+        company_code: 股票代码，用于标注场景归属。
+
     Returns:
         {
-            "by_statement": {stmt: {"table_count": n, "merged_successfully": bool, "row_count": n}},
+            "by_statement": {...},
             "merge_success_rate": float,
             "header_preserved": bool,
+            "core_tables_found": int,
+            "scene": str,
+            "note": str | None,
         }
     """
     # 找到所有 <table> 位置
@@ -118,9 +131,18 @@ def evaluate_cross_page_continuity(
     total = len(by_statement)
     merge_success_rate = merged_count / total if total > 0 else 0.0
 
+    scene = get_scene_label(company_code) if company_code else ""
+    note = None
+    if scene == "跨页表格":
+        note = "跨页连续性是该场景的核心指标"
+    elif scene:
+        note = "此公司非跨页表格场景，合并成功率接近 1.0 是预期结果"
+
     return {
         "by_statement": by_statement,
         "merge_success_rate": round(merge_success_rate, 3),
         "header_preserved": header_preserved,
         "core_tables_found": total,
+        "scene": scene,
+        "note": note,
     }

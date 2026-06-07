@@ -4,6 +4,8 @@
   - 跨页表格 (10家): cross_page_tables/
   - 密集数值 (10家): dense_numerical/
   - 无边框表格 (2家): borderless_tables/
+
+场景映射统一使用 evaluation.scenes 模块。
 """
 
 from __future__ import annotations
@@ -11,27 +13,26 @@ from __future__ import annotations
 import json
 import sys
 from pathlib import Path
+from typing import Any
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-SCENES = {
-    "跨页表格": "cross_page_tables",
-    "密集数值": "dense_numerical",
-    "无边框表格": "borderless_tables",
-}
+from evaluation.scenes import SCENE_LABELS, get_scene_map
+
+SCENE_LABELS_REV = {v: k for k, v in SCENE_LABELS.items()}
+SCENE_ORDER = ["跨页表格", "密集数值", "无边框表格"]
 
 
 def load_scene_lists() -> dict[str, set[str]]:
-    """从 data/eval_dataset/ 下各场景目录读取 PDF 文件名列表。"""
-    base = PROJECT_ROOT / "data" / "eval_dataset"
-    scene_codes: dict[str, set[str]] = {}
-    for scene_name, dir_name in SCENES.items():
-        scene_dir = base / dir_name
-        if scene_dir.is_dir():
-            codes = {f.stem for f in scene_dir.iterdir() if f.suffix == ".pdf"}
-            scene_codes[scene_name] = codes
-    return scene_codes
+    """从 evaluation.scenes 获取场景映射，返回 {中文名: {公司代码集合}}。"""
+    scene_map = get_scene_map()
+    result: dict[str, set[str]] = {label: set() for label in SCENE_LABELS}
+    for code, dir_name in scene_map.items():
+        label = SCENE_LABELS_REV.get(dir_name)
+        if label:
+            result[label].add(code)
+    return result
 
 
 def load_results(json_path: str | None = None) -> dict[str, dict]:
@@ -134,7 +135,7 @@ def print_report(scene_stats: dict[str, dict]):
     print(header)
     print("  " + "-" * (len(header) - 2))
 
-    for scene_name in ["跨页表格", "密集数值", "无边框表格"]:
+    for scene_name in SCENE_ORDER:
         s = scene_stats.get(scene_name, {})
         if not s or s.get("n", 0) == 0:
             continue
