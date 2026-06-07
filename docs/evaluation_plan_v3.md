@@ -276,28 +276,41 @@ FinAR-Bench 为每家公司提供了 **13 个下游任务**：
 
 | 类型 | 数量/家 | 真值形式 | 评测方法 |
 |------|:--:|------|------|
-| **fact** | 6 | 数值表格 | 从 LAS markdown 中定位科目行，直接数值对比 |
-| **indicator** | 6 | 计算值 | 同上，定位指标对应数值后对比 |
-| **reasoning** | 1 | 0/1 序列 | LLM-as-Judge（需逻辑推理，无法直接数值对比） |
+| **fact** | 6 | 数值表格 | LLM 提取科目数值 → 与 XBRL GT 数值对比（1% 容差） |
+| **indicator** | 6 | 计算值 | LLM 计算指标数值 → 与 XBRL GT 数值对比（2% 容差） |
+| **reasoning** | 1 | 0/1 序列 | LLM-as-Judge（逻辑推理，0/1 判断 vs GT） |
 
 ### 方法
 
-**fact / indicator**（直接对比，不用 LLM）：
+**全部任务均使用 LLM-as-Judge**：
 
-1. 解析 XBRL 真值中的科目名和数值
-2. 在 LAS 输出的 markdown 表格中定位对应科目行
-3. 提取数值并标准化后对比
-
-```
-正确：|LAS值 - XBRL真值| / |XBRL真值| ≤ 0.01（1%容差）
-总任务数 = 12 task × 22 = 264
-```
-
-**reasoning**（LLM-as-Judge）：
+**fact（LLM 提取 + 数值对比）**：
 
 1. 取 LAS 解析后的 markdown 作为 LLM 上下文
-2. 提交 reasoning 任务（含判断条件列表）
-3. LLM 输出 0/1 判断 vs XBRL 真值对比
+2. LLM 从中提取指定科目的数值（JSON 格式输出）
+3. 提取结果与 XBRL GT 数值对比
+
+```
+正确：|LLM提取值 - XBRL真值| / |XBRL真值| ≤ 0.01（1%容差）
+总任务数 = 6 fact × 22 = 132
+```
+
+**indicator（LLM 计算 + 数值对比）**：
+
+1. 取 LAS 解析后的 markdown 作为 LLM 上下文
+2. LLM 根据原始数据计算指定指标（JSON 格式输出）
+3. 计算结果与 XBRL GT 数值对比
+
+```
+正确：|LLM计算值 - XBRL真值| / |XBRL真值| ≤ 0.02（2%容差，计算值允许稍大误差）
+总任务数 = 6 indicator × 22 = 132
+```
+
+**reasoning（LLM 0/1 判断）**：
+
+1. 取 LAS 解析后的 markdown 作为 LLM 上下文
+2. LLM 对判断条件逐一给出 0/1 判断
+3. 判断结果与 XBRL GT 对比
 
 ```
 正确：LLM的0/1判断 == XBRL真值
@@ -308,8 +321,8 @@ FinAR-Bench 为每家公司提供了 **13 个下游任务**：
 
 | 指标 | 计算 | 用 LLM？ |
 |------|------|:--:|
-| Fact 准确率 | 正确的 fact / 132 | ✗ |
-| Indicator 准确率 | 正确的 indicator / 132 | ✗ |
+| Fact 准确率 | 正确的 fact / 132 | ✓ |
+| Indicator 准确率 | 正确的 indicator / 132 | ✓ |
 | Reasoning 准确率 | 正确的条件判断 / 总条件数 | ✓ |
 
 ### 场景拆解
@@ -409,7 +422,7 @@ Module 3 下游可用性
 | 1 | 新 22 家跑 LAS 解析 | `batch_processor.py` |
 | 2 | Module 1 — 文本/表格/数值评测 | 改造现有 module1 代码 |
 | 3 | Module 2 — 跨页连续性 + 阅读顺序（LLM-as-Judge） | 新写 |
-| 4 | Module 3 — FinAR-Bench 13 任务 | 新写（fact/indicator 直接对比，reasoning 用 LLM） |
+| 4 | Module 3 — FinAR-Bench 13 任务（全部 LLM-as-Judge） | 新写 |
 | 5 | 异常兜底测试 | 构造异常文件 |
 | 6 | 报告生成（按场景分组） | 汇总脚本 |
 
@@ -421,6 +434,7 @@ Module 3 下游可用性
 |------|--------|:--:|------|------|
 | Module 2 | 阅读顺序（页内） | ✓ | ~280 页 | 图片+文字 |
 | Module 2 | 阅读顺序（跨页） | ✓ | ~258 页对 | 图片+文字 |
-| Module 3 | fact / indicator | ✗ | — | 直接数值对比 |
-| Module 3 | reasoning | ✓ | 22 家 | 文本问答 |
+| Module 3 | fact | ✓ | 22 家 | 文本问答（提取数值） |
+| Module 3 | indicator | ✓ | 22 家 | 文本问答（计算指标） |
+| Module 3 | reasoning | ✓ | 22 家 | 文本问答（逻辑判断） |
 
