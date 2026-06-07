@@ -1,9 +1,8 @@
-"""Module 3: 下游任务可用性。
+"""Module 3: 下游任务可用性 (v3)。
 
-全部使用 LLM-as-Judge：
-- fact: LLM 根据 LAS markdown 提取指定科目数值
-- indicator: LLM 根据 LAS markdown 计算财务指标
-- reasoning: LLM 根据 LAS markdown + 条件做逻辑推理
+评测方法:
+- fact / indicator: 直接数值对比（从 LAS 表格中定位科目行，与 XBRL GT 数值对比）
+- reasoning: LLM-as-Judge（需逻辑推理，无法直接数值对比）
 
 所有任务结果与 XBRL 真值对比。
 """
@@ -18,43 +17,18 @@ from typing import Any
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
-from module1.utils import get_xbrl_for_company, load_xbrl_dataset
-from evaluation.llm_client import LLMClient
+from module1.utils import (
+    extract_all_tables,
+    get_xbrl_for_company,
+    load_xbrl_dataset,
+    normalize_number,
+    parse_xbrl_tables,
+)
 
 
 # ============================================================================
-# Prompt 模板
+# Prompt 模板（仅 reasoning 使用 LLM）
 # ============================================================================
-
-FACT_PROMPT = """你是一位财务数据分析师。请根据提供的公司财报内容，完成以下信息提取任务。
-
-仔细阅读财报中的合并财务报表（资产负债表、利润表、现金流量表），
-找到任务要求的所有财务科目的2022年和2023年数值。
-
-### 输出格式（严格 JSON，不要其他文字）
-{
-  "results": [
-    {"item": "科目名称", "2022": 数值, "2023": 数值}
-  ]
-}
-
-财报内容和提取任务见下方。"""
-
-
-INDICATOR_PROMPT = """你是一位财务分析师。请根据提供的公司财报内容，完成以下财务指标计算任务。
-
-仔细从财报中提取所需的原始数值，按照标准财务公式计算各指标。
-所有计算结果保留4位小数。
-
-### 输出格式（严格 JSON，不要其他文字）
-{
-  "results": [
-    {"item": "指标名称", "value": 0.1234}
-  ]
-}
-
-财报内容和计算任务见下方。"""
-
 
 REASONING_PROMPT = """你是一位财务分析师。请根据提供的公司财报内容，对以下判断条件逐一给出是否满足的判断。
 
@@ -118,8 +92,8 @@ def _evaluate_task(
     """评测单个任务。
 
     Args:
-        llm: LLM 客户端。
-        las_markdown: LAS 输出的 markdown（截取前 8000 字符）。
+        llm 客户端（仅 reasoning 使用）。
+        las_markdown: LAS 输出的 markdown。
         task_desc: 任务描述。
         gt_text: XBRL ground truth markdown 表格。
         task_type: fact | indicator | reasoning
@@ -127,46 +101,90 @@ def _evaluate_task(
     Returns:
         {"correct": int, "total": int, "accuracy": float}
     """
-    if task_type == "fact":
-        system_prompt = FACT_PROMPT
-    elif task_type == "indicator":
-        system_prompt = INDICATOR_PROMPT
-    else:
-        system_prompt = REASONING_PROMPT
-
-    user_prompt = (
-        f"财报内容：\n{las_markdown[:8000]}\n\n"
-        f"任务：{task_desc}"
-    )
-
-    try:
-        response = llm.chat_text(system_prompt, user_prompt)
-        llm_result = llm.extract_json(response)
-    except Exception as e:
-        return {"correct": 0, "total": 0, "accuracy": 0.0, "error": str(e)}
-
     gt_rows = _parse_gt_table(gt_text)
 
     if task_type == "fact":
-        return _compare_fact(llm_result, gt_rows)
+        return _compare_fact_direct(las_markdown, gt_rows)
     elif task_type == "indicator":
-        return _compare_indicator(llm_result, gt_rows)
+        return _compare_indicator_direct(las_markdown, gt_rows)
     else:
+        # reasoning: 仍然使用 LLM
+        try:
+            response = llm.chat_text(
+                REASONING_PROMPT,
+                f"财报内容：\n{las_markdown[:8000]}\n\n任务：{task_desc}",
+            )
+            llm_result = llm.extract_json(response)
+        except Exception as e:
+            return {"correct": 0, "total": 0, "accuracy": 0.0, "error": str(e)}
         return _compare_reasoning(llm_result, gt_rows, task_desc)
 
 
-def _compare_fact(
-    llm_result: dict[str, Any],
+def _extract_las_table_values(las_markdown: str) -> dict[str, dict[str, str]]:
+    """从 LAS markdown 的 HTML 表格中提取所有科目及其数值。
+
+    Returns:
+        {科目名: {列名: 值, ...}, ...}
+    """
+    tables = extract_all_tables(las_markdown)
+    result: dict[str, dict[str, str]] = {}
+
+    for _title, dict_list, _tree in tables:
+        if not dict_list or len(dict_list) < 2:
+            continue
+        headers = list(dict_list[0].keys())
+        if len(headers) < 2:
+            continue
+        item_col = headers[0]
+        for row in dict_list:
+            item_name = row.get(item_col, "").strip()
+            if not item_name:
+                continue
+            values = {}
+            for col in headers[1:]:
+                val = row.get(col, "").strip()
+                if val:
+                    values[col] = val
+            if values:
+                result[item_name] = values
+
+    return result
+
+
+def _normalize_value(val: str) -> float | None:
+    """标准化数值：去逗号、括号负数→负号、统一小数。"""
+    s = val.replace(",", "").replace(" ", "").strip()
+    if s.startswith("(") and s.endswith(")"):
+        s = "-" + s[1:-1]
+    try:
+        return float(s)
+    except ValueError:
+        return None
+
+
+def _match_item(target: str, candidates: list[str]) -> str | None:
+    """模糊匹配科目名。"""
+    # 精确匹配
+    if target in candidates:
+        return target
+    # 包含匹配
+    for c in candidates:
+        if target in c or c in target:
+            return c
+    return None
+
+
+def _compare_fact_direct(
+    las_markdown: str,
     gt_rows: list[dict[str, str]],
 ) -> dict[str, Any]:
-    """对比 fact 任务结果。"""
-    llm_items = {}
-    if isinstance(llm_result, dict):
-        for r in llm_result.get("results", []):
-            name = r.get("item", "").strip()
-            v2022 = r.get("2022", 0)
-            v2023 = r.get("2023", 0)
-            llm_items[name] = {"2022": v2022, "2023": v2023}
+    """直接数值对比 fact 任务：在 LAS 表格中定位科目，与 XBRL GT 对比。
+
+    不使用 LLM，直接从 LAS 的 HTML 表格中提取数值。
+    正确判定：|LAS值 - XBRL真值| / |XBRL真值| <= 0.01（1%容差）。
+    """
+    las_items = _extract_las_table_values(las_markdown)
+    las_item_names = list(las_items.keys())
 
     correct = 0
     total = 0
@@ -177,64 +195,60 @@ def _compare_fact(
         if len(cols) < 2:
             continue
         item_name = row.get(cols[0], "").strip()
+
+        matched_key = _match_item(item_name, las_item_names)
+        las_entry = las_items.get(matched_key, {}) if matched_key else {}
+
         for col in cols[1:]:
             gt_val = row[col].strip()
             if not gt_val:
                 continue
             total += 1
 
-            llm_entry = llm_items.get(item_name)
-            if llm_entry is None:
-                # 尝试模糊匹配
-                for k in llm_items:
-                    if item_name in k or k in item_name:
-                        llm_entry = llm_items[k]
+            gt_num = _normalize_value(gt_val)
+            # 尝试年份匹配
+            las_val_str = None
+            if matched_key and las_entry:
+                for lc in las_entry:
+                    if col in lc or lc in col:
+                        las_val_str = las_entry[lc]
                         break
+                # fallback: 取第一个数值列
+                if las_val_str is None and las_entry:
+                    las_val_str = list(las_entry.values())[0]
 
-            if llm_entry is not None:
-                year_key = col.strip()
-                # 匹配年份列: "2022" / "2023" / "2022年" 等
-                llm_val = None
-                for yk in llm_entry:
-                    if "2022" in str(year_key) and "2022" in str(yk):
-                        llm_val = llm_entry[yk]
-                    elif "2023" in str(year_key) and "2023" in str(yk):
-                        llm_val = llm_entry[yk]
+            if las_val_str is not None and gt_num is not None:
+                las_num = _normalize_value(las_val_str)
+                if las_num is not None:
+                    if gt_num == 0:
+                        is_correct = abs(las_num) < 1e-6
+                    else:
+                        is_correct = abs(las_num - gt_num) / abs(gt_num) <= 0.01
+                    if is_correct:
+                        correct += 1
 
-                if llm_val is not None:
-                    try:
-                        v1 = float(llm_val)
-                        v2 = float(gt_val.replace(",", ""))
-                        if v2 == 0:
-                            is_correct = abs(v1) < 1e-6
-                        else:
-                            is_correct = abs(v1 - v2) / abs(v2) <= 0.01
-                        if is_correct:
-                            correct += 1
-                    except (ValueError, TypeError):
-                        pass
-
-            details.append({"item": item_name, "gt": gt_val})
+        if total <= 5:
+            details.append({"item": item_name, "matched": matched_key is not None})
 
     return {
         "correct": correct,
         "total": total,
         "accuracy": round(correct / total, 3) if total > 0 else 0.0,
         "details": details[:5],
+        "method": "direct_table_lookup",
     }
 
 
-def _compare_indicator(
-    llm_result: dict[str, Any],
+def _compare_indicator_direct(
+    las_markdown: str,
     gt_rows: list[dict[str, str]],
 ) -> dict[str, Any]:
-    """对比 indicator 任务结果。"""
-    llm_values = {}
-    if isinstance(llm_result, dict):
-        for r in llm_result.get("results", []):
-            name = r.get("item", "").strip()
-            val = r.get("value", 0)
-            llm_values[name] = val
+    """直接数值对比 indicator 任务。
+
+    同样从 LAS 表格直接提取，2%容差（indicator 是计算值，允许稍大误差）。
+    """
+    las_items = _extract_las_table_values(las_markdown)
+    las_item_names = list(las_items.keys())
 
     correct = 0
     total = 0
@@ -244,36 +258,41 @@ def _compare_indicator(
         if len(cols) < 2:
             continue
         item_name = row.get(cols[0], "").strip()
+
+        matched_key = _match_item(item_name, las_item_names)
+        las_entry = las_items.get(matched_key, {}) if matched_key else {}
+
         for col in cols[1:]:
             gt_val = row[col].strip()
             if not gt_val:
                 continue
             total += 1
 
-            # 精确匹配 or 模糊匹配
-            llm_val = llm_values.get(item_name)
-            if llm_val is None:
-                for k in llm_values:
-                    if item_name[:4] in k or k[:4] in item_name:
-                        llm_val = llm_values[k]
+            gt_num = _normalize_value(gt_val)
+            las_val_str = None
+            if matched_key and las_entry:
+                for lc in las_entry:
+                    if col in lc or lc in col:
+                        las_val_str = las_entry[lc]
                         break
+                if las_val_str is None and las_entry:
+                    las_val_str = list(las_entry.values())[0]
 
-            if llm_val is not None:
-                try:
-                    gt_f = float(gt_val)
-                    if gt_f == 0:
-                        is_correct = abs(float(llm_val)) < 1e-6
+            if las_val_str is not None and gt_num is not None:
+                las_num = _normalize_value(las_val_str)
+                if las_num is not None:
+                    if gt_num == 0:
+                        is_correct = abs(las_num) < 1e-6
                     else:
-                        is_correct = abs(float(llm_val) - gt_f) / abs(gt_f) <= 0.02
+                        is_correct = abs(las_num - gt_num) / abs(gt_num) <= 0.02
                     if is_correct:
                         correct += 1
-                except (ValueError, TypeError):
-                    pass
 
     return {
         "correct": correct,
         "total": total,
         "accuracy": round(correct / total, 3) if total > 0 else 0.0,
+        "method": "direct_table_lookup",
     }
 
 
@@ -318,8 +337,8 @@ def _compare_reasoning(
 # ============================================================================
 
 def evaluate_company(
-    llm: LLMClient,
-    company_code: str,
+    llm: LLMClient | None = None,
+    company_code: str = "",
     las_markdown: str | None = None,
     las_results_dir: str | Path | None = None,
     xbrl_records: list[dict[str, Any]] | None = None,
@@ -327,7 +346,7 @@ def evaluate_company(
     """对单家公司执行 Module 3 全部评测。
 
     Args:
-        llm: LLM 客户端（必需，三项任务都依赖 LLM）。
+        llm: LLM 客户端（仅 reasoning 任务需要）。
         company_code: 股票代码。
         las_markdown: LAS 输出 markdown。
         las_results_dir: LAS 结果目录。
@@ -381,13 +400,17 @@ def evaluate_company(
         if task_type not in ("fact", "indicator", "reasoning"):
             continue
 
-        print(f"  [{task_type}] {task_desc[:60]}...", end=" ")
-        try:
-            result = _evaluate_task(llm, las_markdown, task_desc, gt_text, task_type)
-            print(f"{result['correct']}/{result['total']}")
-        except Exception as e:
-            result = {"correct": 0, "total": 0, "accuracy": 0.0, "error": str(e)}
-            print(f"ERROR: {e}")
+        # reasoning 需要 LLM
+        if task_type == "reasoning" and llm is None:
+            result = {"correct": 0, "total": 0, "accuracy": 0.0, "error": "LLM client not provided"}
+        else:
+            print(f"  [{task_type}] {task_desc[:60]}...", end=" ")
+            try:
+                result = _evaluate_task(llm, las_markdown, task_desc, gt_text, task_type)
+                print(f"{result['correct']}/{result['total']}")
+            except Exception as e:
+                result = {"correct": 0, "total": 0, "accuracy": 0.0, "error": str(e)}
+                print(f"ERROR: {e}")
 
         all_details[task_type].append(result)
 

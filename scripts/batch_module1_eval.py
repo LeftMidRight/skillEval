@@ -1,4 +1,7 @@
-"""批量评测：对 25 份 LAS 输出跑模块 1 评测，输出汇总。"""
+"""批量评测：对 25 份 LAS 输出跑模块 1 评测（v3 方案），输出汇总。
+
+不映射 1-10 分，保留原始指标值。
+"""
 
 from __future__ import annotations
 
@@ -9,7 +12,7 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from module1.evaluator import Evaluator
+from evaluation.module1.evaluator import evaluate_company
 
 STOCK_CODES = [
     "600064", "600070", "600082", "600083", "600100",
@@ -21,83 +24,54 @@ STOCK_CODES = [
 
 
 def main():
-    evaluator = Evaluator(
-        xbrl_path=PROJECT_ROOT / "data" / "FinAR-Bench" / "dev.txt",
-        xbrl_paths=[
-            PROJECT_ROOT / "data" / "FinAR-Bench" / "dev.txt",
-            PROJECT_ROOT / "data" / "FinAR-Bench" / "test.txt",
-        ],
-        reference_dir=PROJECT_ROOT / "data" / "FinAR-Bench" / "extracted" / "pdf_extractor_result" / "txt_output",
-    )
-
     output_dir = PROJECT_ROOT / "output" / "las_results"
     results: list[dict] = []
 
-    for code in STOCK_CODES:
-        las_path = output_dir / code / "las_response.json"
-        if not las_path.exists():
-            print(f"[SKIP] {code}: no LAS output")
-            continue
+    for i, code in enumerate(STOCK_CODES):
+        print(f"[{i+1}/{len(STOCK_CODES)}] {code}...", end=" ")
+        try:
+            result = evaluate_company(code)
+            results.append(result)
+            ta = result["text_accuracy"]
+            xbrl_r = result["table_fidelity"]["xbrl_item_recall"]
+            na = result["number_accuracy"]
+            print(f"CER={ta['median_cer']:.3f} ItemRecall={xbrl_r.get('overall', {}).get('recall', 0):.3f} "
+                  f"NumRecall={na['xbrl_recall']:.3f}")
+        except Exception as e:
+            print(f"ERROR: {e}")
+            results.append({"company_code": code, "error": str(e)})
 
-        result = evaluator.evaluate(las_path, company_code=code)
-        d = result.to_dict()
-        results.append(d)
+    # 汇总统计
+    valid = [r for r in results if "error" not in r]
+    if not valid:
+        print("No valid results")
+        return
 
-        text_s = d["text_accuracy"]["score"]
-        table_s = d["table_fidelity"]["score"]
-        num_s = d["number_accuracy"]["score"]
-        teds = d["table_fidelity"]["teds"]
-        cf1 = d["table_fidelity"]["cell_f1"]
-
-        print(f"  {code} ({d['company_name'][:6]}): Text={text_s} Table={table_s} Number={num_s} "
-              f"-> Module1={d['module1_score']}  "
-              f"(TEDS={teds:.2f} CellF1={cf1:.2f})")
-
-        if d["errors"]:
-            print(f"    ERRORS: {d['errors']}")
-        if d["warnings"]:
-            print(f"    WARNINGS: {d['warnings']}")
-
-    # 汇总
-    scores = [r["module1_score"] for r in results]
-    text_scores = [r["text_accuracy"]["score"] for r in results]
-    table_scores = [r["table_fidelity"]["score"] for r in results]
-    num_scores = [r["number_accuracy"]["score"] for r in results]
-    teds_vals = [r["table_fidelity"]["teds"] for r in results]
-    cellf1_vals = [r["table_fidelity"]["cell_f1"] for r in results]
+    def _avg(key_path: list[str]) -> float:
+        vals = []
+        for r in valid:
+            v = r
+            try:
+                for k in key_path:
+                    v = v[k]
+                vals.append(float(v))
+            except (KeyError, ValueError, TypeError):
+                pass
+        return sum(vals) / len(vals) if vals else 0.0
 
     print(f"\n{'='*60}")
-    print(f"BATCH RESULTS (n={len(results)})")
+    print(f"MODULE 1 BATCH RESULTS (v3, n={len(valid)})")
     print(f"{'='*60}")
-    print(f"Module 1 avg: {sum(scores)/len(scores):.1f}/10  (min={min(scores):.1f} max={max(scores):.1f})")
-    print(f"  Text avg:   {sum(text_scores)/len(text_scores):.1f}/10")
-    print(f"  Table avg:  {sum(table_scores)/len(table_scores):.1f}/10")
-    print(f"  Number avg: {sum(num_scores)/len(num_scores):.1f}/10")
-    print(f"  TEDS avg:   {sum(teds_vals)/len(teds_vals):.3f}")
-    print(f"  CellF1 avg: {sum(cellf1_vals)/len(cellf1_vals):.3f}")
+    print(f"  Median CER:          {_avg(['text_accuracy', 'median_cer']):.3f}")
+    print(f"  Mineru Baseline CER: {_avg(['text_accuracy', 'mineru_median_cer']):.3f}")
+    print(f"  XBRL Item Recall:    {_avg(['table_fidelity', 'xbrl_item_recall', 'overall', 'recall']):.3f}")
+    print(f"  Mineru TEDS:         {_avg(['table_fidelity', 'mineru_fidelity', 'teds', 'overall']):.3f}")
+    print(f"  Mineru Cell F1:      {_avg(['table_fidelity', 'mineru_fidelity', 'cell_f1', 'overall', 'f1']):.3f}")
+    print(f"  XBRL Number Recall:  {_avg(['number_accuracy', 'xbrl_recall']):.3f}")
+    print(f"  Mineru Number Jaccard: {_avg(['number_accuracy', 'mineru_jaccard']):.3f}")
 
-    dist = {i: 0 for i in range(1, 11)}
-    for s in scores:
-        dist[int(round(s))] += 1
-    print("Score distribution:", {k: v for k, v in dist.items() if v > 0})
-
-    # 保存
-    summary_path = output_dir / "module1_batch_results.json"
-    data = {
-        "results": results,
-        "summary": {
-            "n": len(results),
-            "avg": round(sum(scores)/len(scores), 1),
-            "min": round(min(scores), 1),
-            "max": round(max(scores), 1),
-            "text_avg": round(sum(text_scores)/len(text_scores), 1),
-            "table_avg": round(sum(table_scores)/len(table_scores), 1),
-            "number_avg": round(sum(num_scores)/len(num_scores), 1),
-            "teds_avg": round(sum(teds_vals)/len(teds_vals), 3),
-            "cellf1_avg": round(sum(cellf1_vals)/len(cellf1_vals), 3),
-            "distribution": {str(k): v for k, v in dist.items() if v > 0},
-        },
-    }
+    summary_path = output_dir / "module1_batch_results_v3.json"
+    data = {"results": results}
     summary_path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"\nSaved: {summary_path}")
 

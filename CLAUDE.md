@@ -145,8 +145,9 @@
 - LAS 配置文件：`skill/script/config.yaml`
 - LAS API 客户端：`skill/script/las_client.py`
 - 批量解析脚本：`scripts/batch_las_parse.py`
-- 批量评测脚本：`scripts/batch_module1_eval.py`
+- 批量评测脚本：`scripts/batch_module1_eval.py`（v3）
+- 场景拆解脚本：`scripts/scene_breakdown.py`（v3）
 - LAS 解析结果：`output/las_results/{股票代码}/`
-- 评测模块：`module1/`
-- 评测方案文档：`docs/evaluation_plan.md`
-- 迭代记录：`docs/评测方案迭代.md`
+- 评测模块（v3）：`evaluation/module1/`、`evaluation/module2/`、`evaluation/module3/`
+- 共用工具函数：`module1/utils.py`
+- 评测方案文档：`docs/evaluation_plan_v3.md`
