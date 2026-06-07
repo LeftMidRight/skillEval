@@ -18,7 +18,7 @@ from typing import Any
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from evaluation.scenes import SCENE_LABELS, get_scene_label, get_scene_map
+from evaluation.scenes import SCENE_LABELS, get_scene_map
 
 DEFAULT_PATHS = {
     "m1": PROJECT_ROOT / "output" / "las_results" / "module1_batch_results_v3.json",
@@ -39,7 +39,43 @@ def _load_json(path: Path) -> list[dict[str, Any]]:
 
 
 def _mean(vals: list[float]) -> float:
-    return sum(vals) / len(vals) if vals else 0.0
+    clean = [v for v in vals if v == v]
+    return sum(clean) / len(clean) if clean else 0.0
+
+
+def _result_scene_label(
+    result_key: str,
+    result: dict[str, Any],
+    sample_scene_map: dict[str, str],
+    company_scene_map: dict[str, str],
+) -> str:
+    sample_id = result.get("sample_id") or result_key
+    scene = sample_scene_map.get(sample_id)
+    if not scene:
+        company_code = result.get("company_code") or result_key
+        scene = company_scene_map.get(str(company_code))
+    return SCENE_LABELS_REV.get(scene, "")
+
+
+def _xbrl_item_recall(result: dict[str, Any]) -> float:
+    data = result.get("table_fidelity", {}).get("xbrl_item_recall", {})
+    if "overall_recall" in data:
+        return data.get("overall_recall", 0)
+    return data.get("overall", {}).get("recall", 0)
+
+
+def _mineru_teds(result: dict[str, Any]) -> float:
+    data = result.get("table_fidelity", {}).get("mineru_fidelity", {})
+    if "avg_teds" in data:
+        return data.get("avg_teds", 0)
+    return data.get("teds", {}).get("overall", 0)
+
+
+def _mineru_cell_f1(result: dict[str, Any]) -> float:
+    data = result.get("table_fidelity", {}).get("mineru_fidelity", {})
+    if "avg_cell_f1" in data:
+        return data.get("avg_cell_f1", 0)
+    return data.get("cell_f1", {}).get("overall", {}).get("f1", 0)
 
 
 # ============================================================================
@@ -48,11 +84,12 @@ def _mean(vals: list[float]) -> float:
 
 def compute_m1_scene_stats(results_by_code: dict[str, dict]) -> dict[str, dict]:
     """按场景分组计算 Module 1 指标。"""
-    scene_map = get_scene_map()
+    sample_scene_map = get_scene_map(use_sample_id=True)
+    company_scene_map = get_scene_map(use_sample_id=False)
     # 按场景分组
     groups: dict[str, list[dict]] = {label: [] for label in SCENE_LABELS}
     for code, r in results_by_code.items():
-        label = SCENE_LABELS_REV.get(scene_map.get(code, ""), "")
+        label = _result_scene_label(code, r, sample_scene_map, company_scene_map)
         if label:
             groups[label].append(r)
 
@@ -71,16 +108,10 @@ def compute_m1_scene_stats(results_by_code: dict[str, dict]) -> dict[str, dict]:
             and r["text_accuracy"]["median_cer"] == r["text_accuracy"]["median_cer"]
         ]
         # XBRL Item Recall
-        item_recalls = []
-        for r in items:
-            v = r.get("table_fidelity", {}).get("xbrl_item_recall", {}).get("overall", {}).get("recall", 0)
-            item_recalls.append(v)
+        item_recalls = [_xbrl_item_recall(r) for r in items]
         # Mineru TEDS / Cell F1
-        teds_vals, cellf1_vals = [], []
-        for r in items:
-            mf = r.get("table_fidelity", {}).get("mineru_fidelity", {})
-            teds_vals.append(mf.get("teds", {}).get("overall", 0))
-            cellf1_vals.append(mf.get("cell_f1", {}).get("overall", {}).get("f1", 0))
+        teds_vals = [_mineru_teds(r) for r in items]
+        cellf1_vals = [_mineru_cell_f1(r) for r in items]
         # 数值
         num_recalls = [r["number_accuracy"]["xbrl_recall"] for r in items]
         jaccards = [r["number_accuracy"].get("mineru_jaccard", 0) for r in items]
@@ -114,10 +145,11 @@ def compute_m1_scene_stats(results_by_code: dict[str, dict]) -> dict[str, dict]:
 
 def compute_m2_scene_stats(results_by_code: dict[str, dict]) -> dict[str, dict]:
     """按场景分组计算 Module 2 指标。"""
-    scene_map = get_scene_map()
+    sample_scene_map = get_scene_map(use_sample_id=True)
+    company_scene_map = get_scene_map(use_sample_id=False)
     groups: dict[str, list[dict]] = {label: [] for label in SCENE_LABELS}
     for code, r in results_by_code.items():
-        label = SCENE_LABELS_REV.get(scene_map.get(code, ""), "")
+        label = _result_scene_label(code, r, sample_scene_map, company_scene_map)
         if label:
             groups[label].append(r)
 
@@ -153,10 +185,11 @@ def compute_m2_scene_stats(results_by_code: dict[str, dict]) -> dict[str, dict]:
 
 def compute_m3_scene_stats(results_by_code: dict[str, dict]) -> dict[str, dict]:
     """按场景分组计算 Module 3 指标。"""
-    scene_map = get_scene_map()
+    sample_scene_map = get_scene_map(use_sample_id=True)
+    company_scene_map = get_scene_map(use_sample_id=False)
     groups: dict[str, list[dict]] = {label: [] for label in SCENE_LABELS}
     for code, r in results_by_code.items():
-        label = SCENE_LABELS_REV.get(scene_map.get(code, ""), "")
+        label = _result_scene_label(code, r, sample_scene_map, company_scene_map)
         if label:
             groups[label].append(r)
 
@@ -186,7 +219,7 @@ def compute_m3_scene_stats(results_by_code: dict[str, dict]) -> dict[str, dict]:
 # ============================================================================
 
 SCENE_LABELS_REV = {v: k for k, v in SCENE_LABELS.items()}
-SCENE_ORDER = ["跨页表格", "密集数值", "无边框表格"]
+SCENE_ORDER = ["跨页表格", "密集数值", "无边框表格", "多栏排版（合成）"]
 
 
 def print_report(
@@ -284,9 +317,9 @@ def main():
     m3_raw = _load_json(args.m3)
 
     # 按 company_code 索引
-    m1_by_code = {r["company_code"]: r for r in m1_raw if "error" not in r}
-    m2_by_code = {r["company_code"]: r for r in m2_raw if "error" not in r}
-    m3_by_code = {r["company_code"]: r for r in m3_raw if "error" not in r}
+    m1_by_code = {r.get("sample_id", r["company_code"]): r for r in m1_raw if "error" not in r}
+    m2_by_code = {r.get("sample_id", r["company_code"]): r for r in m2_raw if "error" not in r}
+    m3_by_code = {r.get("sample_id", r["company_code"]): r for r in m3_raw if "error" not in r}
 
     print(f"Module 1: {len(m1_by_code)} companies")
     print(f"Module 2: {len(m2_by_code)} companies")

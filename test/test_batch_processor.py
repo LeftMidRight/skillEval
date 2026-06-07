@@ -24,6 +24,16 @@ def test_derive_code_from_complex_url():
     assert code == "600082"
 
 
+def test_derive_code_preserves_multicolumn_sample_suffix():
+    code = _derive_code("https://example.com/pdf/600569_multi.pdf", 0)
+    assert code == "600569_multi"
+
+
+def test_derive_code_preserves_synthetic_sample_suffix():
+    code = _derive_code("https://example.com/pdf/603421_synth.pdf?sign=abc", 0)
+    assert code == "603421_synth"
+
+
 def test_derive_code_fallback_filename():
     code = _derive_code("https://example.com/reports/annual_report.pdf", 0)
     assert code == "annual_report"
@@ -57,6 +67,8 @@ def main() -> int:
     tests = [
         ("derive_code_from_url", test_derive_code_from_url),
         ("derive_code_from_complex_url", test_derive_code_from_complex_url),
+        ("derive_code_preserves_multicolumn_sample_suffix", test_derive_code_preserves_multicolumn_sample_suffix),
+        ("derive_code_preserves_synthetic_sample_suffix", test_derive_code_preserves_synthetic_sample_suffix),
         ("derive_code_fallback_filename", test_derive_code_fallback_filename),
         ("derive_code_fallback_index", test_derive_code_fallback_index),
         ("extract_markdown_valid", test_extract_markdown_valid),

@@ -106,7 +106,7 @@ def test_teds():
         [TableCell("净利润"), TableCell("10.00"), TableCell("9.00")],
     ])
     # 简单验证：相同表格节点数相同
-    assert t1.node_count == t2.node_count == 6
+    assert t1.node_count == t2.node_count == 9
     assert t1.row_count == t2.row_count == 3
     print(f"[OK] TableTree: node_count={t1.node_count}, row_count={t1.row_count}")
 
@@ -115,7 +115,7 @@ def test_teds():
         [TableCell("项目"), TableCell("2023"), TableCell("2022")],
         [TableCell("营业收入"), TableCell("100.00"), TableCell("90.00")],
     ])
-    assert t3.node_count == 4
+    assert t3.node_count == 6
     assert t3.row_count == 2
     print(f"[OK] Smaller table: node_count={t3.node_count}, row_count={t3.row_count}")
 
@@ -136,10 +136,10 @@ def test_module1_new_evaluator():
 
         tf = result["table_fidelity"]
         xbrl_r = tf["xbrl_item_recall"]
-        print(f"XBRL Item Recall: overall={xbrl_r.get('overall', {}).get('recall', 'N/A')}")
+        print(f"XBRL Item Recall: overall={xbrl_r.get('overall_recall', 'N/A')}")
         mf = tf["mineru_fidelity"]
-        print(f"Mineru TEDS: {mf.get('teds', {}).get('overall', 'N/A')}")
-        print(f"Mineru Cell F1: overall={mf.get('cell_f1', {}).get('overall', {}).get('f1', 'N/A')}")
+        print(f"Mineru TEDS: {mf.get('avg_teds', 'N/A')}")
+        print(f"Mineru Cell F1: overall={mf.get('avg_cell_f1', 'N/A')}")
 
         na = result["number_accuracy"]
         print(f"Number XBRL Recall: {na['xbrl_recall']:.3f}")

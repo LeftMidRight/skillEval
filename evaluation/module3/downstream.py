@@ -16,6 +16,8 @@ from typing import Any
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 from evaluation.llm_client import LLMClient
+from evaluation.manifest import EvalSample, get_sample
+from evaluation.module1.evaluator import _load_xbrl_record_for_sample
 from evaluation.scenes import get_scene_label
 from module1.utils import get_xbrl_for_company, load_xbrl_dataset
 
@@ -357,56 +359,38 @@ def _compare_reasoning(
 # 协调器
 # ============================================================================
 
-def evaluate_company(
+def evaluate_sample(
     llm: LLMClient,
-    company_code: str = "",
+    sample: EvalSample,
     las_markdown: str | None = None,
-    las_results_dir: str | Path | None = None,
     xbrl_records: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
-    """对单家公司执行 Module 3 全部评测。
-
-    所有任务类型（fact/indicator/reasoning）均使用 LLM-as-Judge。
-
-    Args:
-        llm: LLM 客户端。
-        company_code: 股票代码。
-        las_markdown: LAS 输出 markdown。
-        las_results_dir: LAS 结果目录。
-        xbrl_records: 预加载的 XBRL 数据集。
-
-    Returns:
-        {
-            "company_code": str,
-            "fact": {"correct": int, "total": int, "accuracy": float},
-            "indicator": {"correct": int, "total": int, "accuracy": float},
-            "reasoning": {"correct": int, "total": int, "accuracy": float},
-        }
-    """
-    if las_results_dir is None:
-        las_results_dir = PROJECT_ROOT / "output" / "las_results"
-
+    """对一个 manifest 样本执行 Module 3 全部评测。"""
     if las_markdown is None:
-        md_path = Path(las_results_dir) / company_code / "report.md"
+        md_path = sample.las_result_dir / "report.md"
         if md_path.exists():
             las_markdown = md_path.read_text(encoding="utf-8")
         else:
             raise FileNotFoundError(f"LAS markdown not found: {md_path}")
 
-    if xbrl_records is None:
-        xbrl_dir = PROJECT_ROOT / "data" / "FinAR-Bench"
-        xbrl_records = []
-        for split in ["dev.txt", "test.txt"]:
-            path = xbrl_dir / split
-            if path.exists():
-                xbrl_records.extend(load_xbrl_dataset(path))
+    xbrl_record = _load_xbrl_record_for_sample(sample, xbrl_records=xbrl_records)
+    result = _evaluate_xbrl_instances(
+        llm=llm,
+        las_markdown=las_markdown,
+        instances=xbrl_record.get("instances", []),
+    )
+    return {
+        **sample.to_result_metadata(),
+        **result,
+    }
 
-    xbrl_record = get_xbrl_for_company(xbrl_records, company_code)
-    if xbrl_record is None:
-        raise ValueError(f"XBRL record not found for {company_code}")
 
-    instances = xbrl_record.get("instances", [])
-
+def _evaluate_xbrl_instances(
+    llm: LLMClient,
+    las_markdown: str,
+    instances: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """Run downstream tasks for already-loaded XBRL instances."""
     fact_total = 0
     fact_correct = 0
     ind_total = 0
@@ -443,11 +427,7 @@ def evaluate_company(
             reas_correct += result.get("correct", 0)
             reas_total += result.get("total", 0)
 
-    scene = get_scene_label(company_code)
-
     return {
-        "company_code": company_code,
-        "scene": scene,
         "fact": {
             "correct": fact_correct,
             "total": fact_total,
@@ -466,4 +446,76 @@ def evaluate_company(
             "accuracy": round(reas_correct / reas_total, 3) if reas_total > 0 else 0.0,
             "details": all_details["reasoning"],
         },
+    }
+
+
+def evaluate_company(
+    llm: LLMClient,
+    company_code: str = "",
+    las_markdown: str | None = None,
+    las_results_dir: str | Path | None = None,
+    xbrl_records: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """对单家公司执行 Module 3 全部评测。
+
+    所有任务类型（fact/indicator/reasoning）均使用 LLM-as-Judge。
+
+    Args:
+        llm: LLM 客户端。
+        company_code: 股票代码。
+        las_markdown: LAS 输出 markdown。
+        las_results_dir: LAS 结果目录。
+        xbrl_records: 预加载的 XBRL 数据集。
+
+    Returns:
+        {
+            "company_code": str,
+            "fact": {"correct": int, "total": int, "accuracy": float},
+            "indicator": {"correct": int, "total": int, "accuracy": float},
+            "reasoning": {"correct": int, "total": int, "accuracy": float},
+        }
+    """
+    try:
+        sample = get_sample(company_code)
+        return evaluate_sample(
+            llm=llm,
+            sample=sample,
+            las_markdown=las_markdown,
+            xbrl_records=xbrl_records,
+        )
+    except KeyError:
+        pass
+
+    if las_results_dir is None:
+        las_results_dir = PROJECT_ROOT / "output" / "las_results"
+
+    if las_markdown is None:
+        md_path = Path(las_results_dir) / company_code / "report.md"
+        if md_path.exists():
+            las_markdown = md_path.read_text(encoding="utf-8")
+        else:
+            raise FileNotFoundError(f"LAS markdown not found: {md_path}")
+
+    if xbrl_records is None:
+        xbrl_dir = PROJECT_ROOT / "data" / "FinAR-Bench"
+        xbrl_records = []
+        for split in ["dev.txt", "test.txt"]:
+            path = xbrl_dir / split
+            if path.exists():
+                xbrl_records.extend(load_xbrl_dataset(path))
+
+    xbrl_record = get_xbrl_for_company(xbrl_records, company_code)
+    if xbrl_record is None:
+        raise ValueError(f"XBRL record not found for {company_code}")
+
+    scene = get_scene_label(company_code)
+    result = _evaluate_xbrl_instances(
+        llm=llm,
+        las_markdown=las_markdown,
+        instances=xbrl_record.get("instances", []),
+    )
+    return {
+        "company_code": company_code,
+        "scene": scene,
+        **result,
     }

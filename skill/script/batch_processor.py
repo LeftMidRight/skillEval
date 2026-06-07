@@ -180,13 +180,14 @@ def process_batch(
 def _derive_code(url: str, index: int) -> str:
     """从 URL 推导股票代码或任务名。"""
     import re
-    # 尝试匹配 6 位数字代码
+    filename = url.split("/")[-1].split("?")[0]
+    name = filename.rsplit(".", 1)[0]
+    if re.fullmatch(r"\d{6}_(multi|synth|synth_borderless|multicolumn)", name):
+        return name
+    # 原始年报 URL 常带日期或描述后缀，仍按股票代码归档。
     match = re.search(r"(\d{6})", url)
     if match:
         return match.group(1)
-    # 回退：使用文件名
-    filename = url.split("/")[-1].split("?")[0]
-    name = filename.rsplit(".", 1)[0]
     if name:
         return name
     return f"task_{index:03d}"

@@ -1,7 +1,8 @@
 # 金融财报 PDF LAS 解析 Skill — 评测方案 v3
 
 > 版本 v3 | 2026-06-05
-> 数据源：FinAR-Bench（中文 A 股 2023 年报），22 份 PDF，3 场景互不重复
+> 数据源：FinAR-Bench（中文 A 股 2023 年报）+ XBRL 合成专项样本。
+> 当前实现以 `data/eval_dataset/manifest.json` 为 canonical 样本清单：22 份真实 FinAR 样本 + 6 份合成专项样本。
 
 ---
 
@@ -13,7 +14,7 @@
 | PDF | `FinAR-Bench/extracted/pdf_data/<code>.pdf` |
 | Ground Truth | XBRL 三张表（资产负债表/利润表/现金流量表）|
 | 参考解析器 | Mineru / pdfplumber / pymupdf / pypdf / pdfminer / pdftotext |
-| 场景 | 跨页表格(10) / 密集数值(10) / 无边框表格(2)，互不重复 |
+| 场景 | 真实 FinAR：跨页表格(10) / 密集数值(10) / 无边框表格(2)；合成专项：无边框(3) / 多栏排版(3) |
 
 ### 三场景定义
 
@@ -23,7 +24,7 @@
 | **密集数值** | 10 | `numeric_density`（每页金额型数值数）最高 | 千分位逗号、括号负数、元/万元/亿元单位 |
 | **无边框表格** | 2 | 竖线/数值比最低（全量仅此 2 家真正少边框） | 无线条表格的结构还原 |
 
-> 多栏排版：经全量检测确认 A 股年报全部为单栏排版，FinAR 无此类样本，该场景不评测。
+> 多栏排版：经全量检测确认 A 股年报 FinAR 样本为单栏，因此作为合成专项样本单独评测，不并入真实 FinAR 三场景均值。
 
 ---
 
@@ -441,4 +442,3 @@ Module 3 下游可用性（LLM-as-Judge）
 | Module 3 | fact | ✓ | 22 家 | 文本问答（提取数值） |
 | Module 3 | indicator | ✓ | 22 家 | 文本问答（计算指标） |
 | Module 3 | reasoning | ✓ | 22 家 | 文本问答（逻辑判断） |
-

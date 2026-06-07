@@ -17,6 +17,7 @@ import fitz  # PyMuPDF
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 from evaluation.llm_client import LLMClient
+from evaluation.manifest import EvalSample, get_sample
 from evaluation.scenes import get_scene_label
 
 
@@ -234,8 +235,17 @@ def evaluate_reading_order(
     if render_dir is None:
         render_dir = PROJECT_ROOT / "output" / "eval_renders" / company_code
 
+    sample: EvalSample | None = None
+    try:
+        sample = get_sample(company_code)
+    except KeyError:
+        sample = None
+
     # 加载 LAS 响应（含 page_md）
-    las_resp_path = Path(las_results_dir) / company_code / "las_response.json"
+    if sample is not None and las_results_dir == PROJECT_ROOT / "output" / "las_results":
+        las_resp_path = sample.las_result_dir / "las_response.json"
+    else:
+        las_resp_path = Path(las_results_dir) / company_code / "las_response.json"
     with open(las_resp_path, "r", encoding="utf-8") as f:
         las_resp = json.load(f)
 
@@ -243,7 +253,10 @@ def evaluate_reading_order(
     if not detail:
         raise ValueError("No detail in LAS response")
 
-    pdf_path = Path(pdf_dir) / f"{company_code}.pdf"
+    if sample is not None and pdf_dir == PROJECT_ROOT / "data" / "FinAR-Bench" / "extracted" / "pdf_data":
+        pdf_path = sample.pdf_path
+    else:
+        pdf_path = Path(pdf_dir) / f"{company_code}.pdf"
     if not pdf_path.exists():
         raise FileNotFoundError(f"PDF not found: {pdf_path}")
 
@@ -319,12 +332,15 @@ def evaluate_reading_order(
         "cross_page_rate": round(continuous_cross / total_cross, 3) if total_cross > 0 else 0.0,
     }
 
-    scene = get_scene_label(company_code)
+    scene = get_scene_label(sample.sample_id if sample is not None else company_code)
 
-    return {
+    result = {
         "company_code": company_code,
         "scene": scene,
         "page_level": page_results,
         "cross_page": cross_results,
         "summary": summary,
     }
+    if sample is not None:
+        result.update(sample.to_result_metadata())
+    return result

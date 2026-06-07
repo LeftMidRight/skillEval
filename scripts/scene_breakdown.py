@@ -1,9 +1,4 @@
-"""模块 1 场景拆解：按三场景分组重算模块 1 指标，输出场景对比报告。
-
-场景定义与 data/eval_dataset/_selection.json 一致：
-  - 跨页表格 (10家): cross_page_tables/
-  - 密集数值 (10家): dense_numerical/
-  - 无边框表格 (2家): borderless_tables/
+"""模块 1 场景拆解：按 manifest 场景分组重算模块 1 指标，输出对比报告。
 
 场景映射统一使用 evaluation.scenes 模块。
 """
@@ -21,17 +16,17 @@ sys.path.insert(0, str(PROJECT_ROOT))
 from evaluation.scenes import SCENE_LABELS, get_scene_map
 
 SCENE_LABELS_REV = {v: k for k, v in SCENE_LABELS.items()}
-SCENE_ORDER = ["跨页表格", "密集数值", "无边框表格"]
+SCENE_ORDER = ["跨页表格", "密集数值", "无边框表格", "多栏排版（合成）"]
 
 
 def load_scene_lists() -> dict[str, set[str]]:
-    """从 evaluation.scenes 获取场景映射，返回 {中文名: {公司代码集合}}。"""
-    scene_map = get_scene_map()
+    """从 evaluation.scenes 获取场景映射，返回 {中文名: {sample_id集合}}。"""
+    scene_map = get_scene_map(use_sample_id=True)
     result: dict[str, set[str]] = {label: set() for label in SCENE_LABELS}
-    for code, dir_name in scene_map.items():
+    for sample_id, dir_name in scene_map.items():
         label = SCENE_LABELS_REV.get(dir_name)
         if label:
-            result[label].add(code)
+            result[label].add(sample_id)
     return result
 
 
@@ -46,14 +41,36 @@ def load_results(json_path: str | None = None) -> dict[str, dict]:
     raw = json.loads(path.read_text(encoding="utf-8"))
     results: dict[str, dict] = {}
     for r in raw.get("results", []):
-        code = r.get("company_code", "")
+        code = r.get("sample_id") or r.get("company_code", "")
         if code and "error" not in r:
             results[code] = r
     return results
 
 
 def _mean(vals: list[float]) -> float:
-    return sum(vals) / len(vals) if vals else 0.0
+    clean = [v for v in vals if v == v]
+    return sum(clean) / len(clean) if clean else 0.0
+
+
+def _xbrl_item_recall(result: dict[str, Any]) -> float:
+    data = result.get("table_fidelity", {}).get("xbrl_item_recall", {})
+    if "overall_recall" in data:
+        return data.get("overall_recall", 0)
+    return data.get("overall", {}).get("recall", 0)
+
+
+def _mineru_teds(result: dict[str, Any]) -> float:
+    data = result.get("table_fidelity", {}).get("mineru_fidelity", {})
+    if "avg_teds" in data:
+        return data.get("avg_teds", 0)
+    return data.get("teds", {}).get("overall", 0)
+
+
+def _mineru_cell_f1(result: dict[str, Any]) -> float:
+    data = result.get("table_fidelity", {}).get("mineru_fidelity", {})
+    if "avg_cell_f1" in data:
+        return data.get("avg_cell_f1", 0)
+    return data.get("cell_f1", {}).get("overall", {}).get("f1", 0)
 
 
 def compute_scene_stats(
@@ -80,19 +97,11 @@ def compute_scene_stats(
         mineru_baselines = [r["text_accuracy"]["mineru_median_cer"] for r in matched]
 
         # XBRL Item Recall
-        item_recalls = []
-        for r in matched:
-            xbrl_r = r.get("table_fidelity", {}).get("xbrl_item_recall", {})
-            v = xbrl_r.get("overall", {}).get("recall", 0)
-            item_recalls.append(v)
+        item_recalls = [_xbrl_item_recall(r) for r in matched]
 
         # Mineru TEDS / Cell F1
-        teds_vals = []
-        cellf1_vals = []
-        for r in matched:
-            mf = r.get("table_fidelity", {}).get("mineru_fidelity", {})
-            teds_vals.append(mf.get("teds", {}).get("overall", 0))
-            cellf1_vals.append(mf.get("cell_f1", {}).get("overall", {}).get("f1", 0))
+        teds_vals = [_mineru_teds(r) for r in matched]
+        cellf1_vals = [_mineru_cell_f1(r) for r in matched]
 
         # 数值
         xbrl_num_recalls = [r["number_accuracy"]["xbrl_recall"] for r in matched]
@@ -124,7 +133,7 @@ def print_report(scene_stats: dict[str, dict]):
     print("模块 1 场景拆解报告 (v3)")
     print(f"{'='*90}")
     print()
-    print("三场景互不重复，直接按原始指标值对比。")
+    print("按 manifest 样本分组，直接按原始指标值对比。")
     print()
 
     header = (
