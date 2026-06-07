@@ -1,7 +1,6 @@
 las:
-  endpoint: "https://las-api.volcengineapi.com"
-  access_key: "${LAS_ACCESS_KEY}"
-  secret_key: "${LAS_SECRET_KEY}"
+  base_url: "https://las-api.volcengineapi.com"
+  api_key: "${LAS_API_KEY}"
   operator_id: "pdf-parse-financial"
   operator_version: "1.0"
 
