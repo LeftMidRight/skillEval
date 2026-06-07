@@ -174,19 +174,18 @@ class BorderlessPDF(FPDF):
 
 
 class MultiColumnPDF(FPDF):
-    """生成典型多栏排版 PDF（2 栏，含栏间竖线分隔符）。
+    """生成经典多栏排版 PDF（报纸/年报风格）。
 
-    布局：
-      - 通栏标题（跨全页）
-      - 两栏正文，左栏→右栏自然流排
-      - 栏间可见竖线
-      - 表格带线框（单栏宽度内的薄框表格）
-      - 多栏记事 + 财务数据混合排版
+    核心特征：
+      - 连续长文本在左栏溢出后自然流入右栏（而非左右独立内容）
+      - 栏间可见竖线分隔符
+      - 表格嵌入文本流（居中通栏或单栏窄表）
+      - 跨页时文本从上一页右栏底部续到下一页左栏顶部
     """
 
     def __init__(self, company_name: str, company_code: str):
         super().__init__("P", "mm", "A4")
-        self.set_auto_page_break(True, 18)
+        self.set_auto_page_break(False)  # 手动控制分页
         self.company_name = company_name
         self.company_code = company_code
 
@@ -211,141 +210,362 @@ class MultiColumnPDF(FPDF):
             raise RuntimeError("No Chinese font found")
         self.add_font("CN", "", font_path)
 
-        # 版面参数
-        self.left_margin = 12
-        self.right_margin = 12
-        self.col_width = 88   # mm per column
-        self.col_gap = 8      # 栏间距
-        self.right_col_x = self.left_margin + self.col_width + self.col_gap
-        # 栏间竖线 X 坐标
-        self.divider_x = self.left_margin + self.col_width + self.col_gap / 2
+        # 版面参数（经典两栏报纸版式）
+        self.lm = 15           # 左边距
+        self.rm = 15            # 右边距
+        self.col_w = 85         # 单栏宽度
+        self.gutter = 8         # 栏间距
+        self.page_w = 210       # A4 宽
+        self.page_h = 297       # A4 高
+        self.top_margin = 15
+        self.bottom_margin = 20
+        self.usable_h = self.page_h - self.top_margin - self.bottom_margin  # 262mm
 
-        self._col_top_y = 0.0    # 记录每页两栏内容的起始 Y
-        self._left_y = 0.0       # 左栏当前 Y
-        self._right_y = 0.0      # 右栏当前 Y
+        # 两栏 X 坐标
+        self.left_x = self.lm
+        self.right_x = self.lm + self.col_w + self.gutter
+        # 分隔线 X
+        self.divider_x = self.lm + self.col_w + self.gutter / 2
+
+        # 流排状态
+        self._cur_col = "left"      # 当前栏: "left" | "right"
+        self._cur_y = self.top_margin
+        self._page_num = 0
 
     # ================================================================
-    # 通栏元素（跨两栏）
+    # 内部：分页与换栏
     # ================================================================
 
-    def full_span_title(self, title: str):
-        """通栏大标题（跨两栏）。"""
-        self.set_font("CN", "", 16)
-        self.cell(0, 10, title, align="C", new_x="LMARGIN", new_y="NEXT")
-        self.ln(4)
-
-    def full_span_text(self, text: str, size: int = 9):
-        """通栏文本行（跨两栏，如日期/来源）。"""
-        self.set_font("CN", "", size)
-        self.set_text_color(100, 100, 100)
-        self.cell(0, 6, text, align="C", new_x="LMARGIN", new_y="NEXT")
-        self.set_text_color(0, 0, 0)
-        self.ln(2)
-
-    def draw_divider(self, top_y: float, bottom_y: float):
-        """在栏间绘制竖线分隔符。"""
-        self.set_draw_color(180, 180, 180)
-        self.set_line_width(0.3)
-        self.line(self.divider_x, top_y, self.divider_x, bottom_y)
+    def _draw_divider(self):
+        """当前页画分隔线（从 _col_top_y 到 usable_bottom）。"""
+        top = self.top_margin + 2
+        bottom = self.page_h - self.bottom_margin
+        self.set_draw_color(160, 160, 160)
+        self.set_line_width(0.25)
+        self.line(self.divider_x, top, self.divider_x, bottom)
         self.set_line_width(0.2)
 
-    def start_two_column_region(self):
-        """标记两栏区域的起始 Y。"""
-        self._col_top_y = self.get_y()
-        self._left_y = self._col_top_y
-        self._right_y = self._col_top_y
-
-    # ================================================================
-    # 左栏内容
-    # ================================================================
-
-    def left_title(self, title: str):
-        self.set_x(self.left_margin)
-        self.set_font("CN", "", 11)
-        self.cell(self.col_width, 7, title, align="L", new_x="LMARGIN", new_y="NEXT")
-        self._left_y = self.get_y()
-        self.ln(1)
-
-    def left_body(self, text: str, size: int = 8):
-        """左栏正文：在 col_width 宽度内自动换行。"""
-        self.set_x(self.left_margin)
-        self.set_font("CN", "", size)
-        self.multi_cell(self.col_width, 4.2, text, align="L")
-        self._left_y = self.get_y()
-        self.ln(1)
-
-    def left_table(self, rows: list[list[str]], max_rows: int = 10):
-        """左栏带线框小表格。"""
-        self.set_x(self.left_margin)
+    def _draw_page_number(self):
+        """页眉/页脚。"""
         self.set_font("CN", "", 7)
-        ncols = len(rows[0]) if rows else 2
-        cw = [self.col_width / ncols] * ncols
-        line_h = 4.5
+        self.set_text_color(120, 120, 120)
+        self.set_xy(self.lm, self.page_h - 12)
+        self.cell(self.page_w - self.lm - self.rm, 5,
+                  f"— {self.company_name} ({self.company_code}.SH)  2023 年度报告  第 {self._page_num} 页 —",
+                  align="C")
+        self.set_text_color(0, 0, 0)
 
-        # 表头
-        self.set_fill_color(235, 235, 235)
-        for i, h in enumerate(rows[0]):
-            self.cell(cw[i], line_h + 1, h, border=1, fill=True, align="C")
-        self.ln()
-        # 数据
-        for row in rows[1:max_rows + 1]:
-            for i, cell in enumerate(row):
-                align = "R" if i > 0 else "L"
-                self.cell(cw[i], line_h, str(cell), border=1, align=align)
-            self.ln()
-        self._left_y = self.get_y()
-        self.ln(3)
+    def _new_page(self):
+        """新建一页并重置光标到左栏顶部。"""
+        # 完成当前页
+        if self._page_num > 0:
+            self._draw_divider()
+            self._draw_page_number()
+        self.add_page()
+        self._page_num += 1
+        self._cur_col = "left"
+        self._cur_y = self.top_margin
+
+    def _switch_to_right_col(self):
+        """切换到右栏。"""
+        self._cur_col = "right"
+        self._cur_y = self.top_margin
+
+    def _advance_y(self, h: float):
+        """前进 Y，如果超出当前栏则自动换栏/翻页。返回 True 表示成功放置。"""
+        self._cur_y += h
+        col_bottom = self.page_h - self.bottom_margin
+        if self._cur_y > col_bottom:
+            if self._cur_col == "left":
+                self._switch_to_right_col()
+                self._cur_y = self.top_margin + h
+                return True
+            else:
+                self._new_page()
+                return self._advance_y(0)  # 递归重置
+        return True
 
     # ================================================================
-    # 右栏内容
+    # 通栏元素
     # ================================================================
 
-    def _set_right_x(self):
-        self.set_x(self.right_col_x)
+    def full_title(self, title: str):
+        """通栏大标题（跨两栏居中）。"""
+        if self._page_num == 0 or self._cur_col != "left" or self._cur_y > self.top_margin + 10:
+            self._new_page()
+        self.set_xy(self.lm, self._cur_y)
+        self.set_font("CN", "", 18)
+        self.cell(self.page_w - self.lm - self.rm, 12, title, align="C", new_x="LMARGIN", new_y="NEXT")
+        self._cur_y = self.get_y() + 3
+        # 画标题下划线
+        self.set_draw_color(80, 80, 80)
+        self.set_line_width(0.6)
+        self.line(self.lm, self._cur_y, self.page_w - self.rm, self._cur_y)
+        self.set_line_width(0.2)
+        self._cur_y += 4
 
-    def right_title(self, title: str):
-        self._set_right_x()
-        self.set_font("CN", "", 11)
-        self.cell(self.col_width, 7, title, align="L", new_x="LMARGIN", new_y="NEXT")
-        self._right_y = self.get_y()
+    def full_subtitle(self, text: str):
+        """通栏副标题/日期行。"""
+        self.set_xy(self.lm, self._cur_y)
+        self.set_font("CN", "", 8)
+        self.set_text_color(100, 100, 100)
+        self.cell(self.page_w - self.lm - self.rm, 5, text, align="C")
+        self.set_text_color(0, 0, 0)
+        self._cur_y += 7
+        # 副标题下细线
+        self.set_draw_color(180, 180, 180)
+        self.set_line_width(0.15)
+        self.line(self.lm, self._cur_y, self.page_w - self.rm, self._cur_y)
+        self._cur_y += 4
 
-    def right_body(self, text: str, size: int = 8):
-        self._set_right_x()
+    def full_section_break(self, title: str):
+        """通栏小结标题 + 分隔线。触发换页右栏→新页。"""
+        if self._cur_col == "right":
+            # 先完成当前页
+            self._draw_divider()
+            self._draw_page_number()
+        self._new_page()
+        # 通栏标题
+        self.set_xy(self.lm, self._cur_y)
+        self.set_font("CN", "", 13)
+        self.cell(self.page_w - self.lm - self.rm, 9, title, align="C", new_x="LMARGIN", new_y="NEXT")
+        self._cur_y = self.get_y() + 2
+        # 标题下划线
+        self.set_draw_color(80, 80, 80)
+        self.set_line_width(0.4)
+        self.line(self.lm, self._cur_y, self.page_w - self.rm, self._cur_y)
+        self.set_line_width(0.2)
+        self._cur_y += 5
+
+    # ================================================================
+    # 流排正文（核心：文本自动流排，左栏→右栏→翻页）
+    # ================================================================
+
+    def flow_text(self, text: str, size: int = 8.5, indent: float = 0):
+        """将文本流排到当前栏（左/右），自然溢出换栏/翻页。
+
+        这是核心排版方法：文本不指定栏，而是顺延当前流排位置，
+        左栏满了就换右栏，右栏满了就翻页续左栏。
+        """
         self.set_font("CN", "", size)
-        self.multi_cell(self.col_width, 4.2, text, align="L")
-        self._right_y = self.get_y()
+        line_h = size * 0.5  # 行高 ≈ 字号的 0.5 倍（mm）
+        col_bottom = self.page_h - self.bottom_margin
+        col_x = self.left_x if self._cur_col == "left" else self.right_x
 
-    def right_table(self, rows: list[list[str]], max_rows: int = 10):
-        """右栏带线框表格。"""
-        self._set_right_x()
-        self.set_font("CN", "", 7)
+        # 段首缩进
+        para_indent = indent if indent > 0 else 0
+
+        # 逐字流排
+        remaining = text
+        first_line = True
+
+        while remaining:
+            avail_w = self.col_w - (para_indent if first_line else 0)
+            col_x_cur = col_x + (para_indent if first_line else 0)
+
+            # 尝试在当前栏放入尽可能多的文字
+            # fpdf2 multi_cell 不方便单行控制，手动逐字测量
+            fit = 0
+            cur_w = 0.0
+            for i, ch in enumerate(remaining):
+                cw = self.get_string_width(ch)
+                if cur_w + cw > avail_w:
+                    # 回退到最后一个空格（中文通常不需要）
+                    break
+                cur_w += cw
+                fit = i + 1
+
+            if fit == 0:
+                # 第一个字符就放不下——换栏/翻页
+                if self._cur_col == "left":
+                    self._switch_to_right_col()
+                    col_x = self.right_x
+                    col_bottom = self.page_h - self.bottom_margin
+                    continue
+                else:
+                    self._draw_divider()
+                    self._draw_page_number()
+                    self._new_page()
+                    col_x = self.left_x
+                    col_bottom = self.page_h - self.bottom_margin
+                    continue
+
+            line_text = remaining[:fit]
+            remaining = remaining[fit:]
+
+            # 检查当前栏是否还有空间
+            if self._cur_y + line_h > col_bottom:
+                # 当前栏满了
+                if self._cur_col == "left":
+                    self._switch_to_right_col()
+                    col_x = self.right_x
+                    col_bottom = self.page_h - self.bottom_margin
+                    # 重排这行到右栏
+                    remaining = line_text + remaining
+                    first_line = True
+                    continue
+                else:
+                    # 翻页
+                    self._draw_divider()
+                    self._draw_page_number()
+                    self._new_page()
+                    col_x = self.left_x
+                    col_bottom = self.page_h - self.bottom_margin
+                    remaining = line_text + remaining
+                    first_line = True
+                    continue
+
+            # 画这行
+            self.set_xy(col_x_cur, self._cur_y)
+            self.cell(self.col_w, line_h, line_text, align="L")
+            self._cur_y += line_h
+            first_line = False
+
+    def flow_paragraph(self, text: str, size: int = 8.5, first_indent: float = 6):
+        """流排一个段落：首行缩进 + 自动换行/换栏。"""
+        self.flow_text(text, size=size, indent=first_indent)
+        # 段后空行
+        self._cur_y += 3
+
+    def flow_heading(self, title: str, size: int = 10.5, level: int = 1):
+        """在文本流中插入小标题（通栏 or 单栏）。"""
+        # 如果右栏空间不够，先翻页
+        if self._cur_col == "right" and self._cur_y > self.page_h - self.bottom_margin - 30:
+            self._draw_divider()
+            self._draw_page_number()
+            self._new_page()
+        # 如果左栏已占半页以上，标题尽量在左栏新位置
+        self._cur_y += 2
+        col_x = self.left_x if self._cur_col == "left" else self.right_x
+        self.set_xy(col_x, self._cur_y)
+        self.set_font("CN", "", size)
+        self.cell(self.col_w, size * 0.55, title, align="L")
+        self._cur_y = self.get_y() + size * 0.55 + 1
+
+        # 小标题下划线
+        if level == 1:
+            self.set_draw_color(120, 120, 120)
+            self.set_line_width(0.2)
+            self.line(col_x, self._cur_y, col_x + self.col_w, self._cur_y)
+            self._cur_y += 2
+
+    # ================================================================
+    # 通栏表格（财务报表）
+    # ================================================================
+
+    def full_span_table(self, title: str, rows: list[list[str]], max_rows: int = 25):
+        """通栏表格（跨两栏），用于完整的财务报表。"""
+        # 确保在新页起始
+        if self._cur_col == "right":
+            self._draw_divider()
+            self._draw_page_number()
+            self._new_page()
+
+        # 标题
+        self.set_xy(self.lm, self._cur_y)
+        self.set_font("CN", "", 11)
+        self.cell(self.page_w - self.lm - self.rm, 8, title, align="C", new_x="LMARGIN", new_y="NEXT")
+        self._cur_y = self.get_y() + 2
+
         ncols = len(rows[0]) if rows else 2
-        cw = [self.col_width / ncols] * ncols
+        total_w = self.page_w - self.lm - self.rm  # 180mm
+        # 第一列宽一些（项目名）
+        cw_first = min(50, int(total_w * 0.3))
+        cw_rest = (total_w - cw_first) / max(ncols - 1, 1)
+        col_widths = [cw_first] + [cw_rest] * (ncols - 1)
+        line_h = 5.0
+
+        col_bottom = self.page_h - self.bottom_margin
+        row_count = 0
+
+        for ri, row in enumerate(rows):
+            if row_count >= max_rows:
+                break
+
+            # 翻页检测
+            if self._cur_y + line_h > col_bottom:
+                # 表格续页 —— 先画完当前页表格部分，翻页后续
+                self._draw_divider()
+                self._draw_page_number()
+                self._new_page()
+                # 重画表头
+                self.set_xy(self.lm, self._cur_y)
+                self.set_font("CN", "", 7)
+                self.set_fill_color(235, 235, 235)
+                for ci, h in enumerate(rows[0]):
+                    w = col_widths[ci] if ci < len(col_widths) else cw_rest
+                    self.cell(w, line_h + 1, h, border=1, fill=True, align="C")
+                self.ln()
+                self._cur_y = self.get_y()
+
+            self.set_xy(self.lm, self._cur_y)
+            self.set_font("CN", "", 7)
+            if ri == 0:
+                # 表头
+                self.set_fill_color(235, 235, 235)
+                for ci, h in enumerate(row):
+                    w = col_widths[ci] if ci < len(col_widths) else cw_rest
+                    self.cell(w, line_h + 1, h, border=1, fill=True, align="C")
+                self.ln()
+            else:
+                for ci, cell in enumerate(row):
+                    w = col_widths[ci] if ci < len(col_widths) else cw_rest
+                    align = "L" if ci == 0 else "R"
+                    self.cell(w, line_h, str(cell), border=1, align=align)
+                self.ln()
+
+            self._cur_y = self.get_y()
+            row_count += 1
+
+        self._cur_y += 4
+        # 表格后恢复左栏流排
+        self._cur_col = "left"
+
+    # ================================================================
+    # 单栏小表格（摘要/亮点）
+    # ================================================================
+
+    def column_table(self, rows: list[list[str]], max_rows: int = 10):
+        """在当前栏内嵌入一个小表格。"""
+        col_x = self.left_x if self._cur_col == "left" else self.right_x
+        ncols = len(rows[0]) if rows else 2
+        cw = self.col_w / ncols
         line_h = 4.5
+        col_bottom = self.page_h - self.bottom_margin
 
-        # 表头
-        self.set_fill_color(235, 235, 235)
-        for i, h in enumerate(rows[0]):
-            self.cell(cw[i], line_h + 1, h, border=1, fill=True, align="C")
-        self.ln()
-        for row in rows[1:max_rows + 1]:
-            for i, cell in enumerate(row):
-                align = "R" if i > 0 else "L"
-                self.cell(cw[i], line_h, str(cell), border=1, align=align)
+        # 检查空间
+        needed_h = min(len(rows), max_rows + 1) * line_h + line_h
+        if self._cur_y + needed_h > col_bottom:
+            if self._cur_col == "left":
+                self._switch_to_right_col()
+                col_x = self.right_x
+            else:
+                self._draw_divider()
+                self._draw_page_number()
+                self._new_page()
+                col_x = self.left_x
+
+        for ri, row in enumerate(rows[:max_rows + 1]):
+            self.set_xy(col_x, self._cur_y)
+            self.set_font("CN", "", 7)
+            if ri == 0:
+                self.set_fill_color(235, 235, 235)
+                for ci, cell in enumerate(row):
+                    self.cell(cw, line_h, str(cell), border=1, fill=True, align="C")
+            else:
+                for ci, cell in enumerate(row):
+                    align = "L" if ci == 0 else "R"
+                    self.cell(cw, line_h, str(cell), border=1, align=align)
             self.ln()
-        self._right_y = self.get_y()
+            self._cur_y = self.get_y()
 
-    # ================================================================
-    # 完成页面的两栏区域
-    # ================================================================
+        self._cur_y += 3
 
-    def finish_two_column_page(self, page_h: int = 297):
-        """在页面底部绘制栏间竖线，并将 Y 移到两栏下方的统一位置。"""
-        bottom = max(self._left_y, self._right_y)
-        if bottom > self._col_top_y + 10:
-            self.draw_divider(self._col_top_y, min(bottom, page_h - 20))
-        # 将光标移到两栏中更靠下的位置（模拟通栏接续）
-        self.set_y(bottom + 6)
+    def finalize(self):
+        """完成最后一页的绘制。"""
+        if self._page_num > 0:
+            self._draw_divider()
+            self._draw_page_number()
 
 
 # ---------------------------------------------------------------------------
@@ -436,11 +656,45 @@ def _pick_key_rows(rows: list[list[str]], n: int = 8) -> list[list[str]]:
     return result
 
 
+# 多栏排版用的年报正文（长文本，模拟真实年报的连续叙述风格）
+COMPANY_REPORT_BODY = {
+    "603421": [
+        "鼎信通讯股份有限公司（以下简称「公司」或「本公司」）是国内领先的电力物联网通信方案提供商，专注于电力线载波通信技术的研发与应用。公司自成立以来，始终坚持以技术创新为核心驱动力，深耕电力物联网通信领域近二十年，形成了从芯片设计到系统集成的完整技术链条。",
+        "2023年度，公司实现营业收入约36.3亿元，归属于上市公司股东的净利润约3.1亿元。在宏观经济承压的大背景下，公司主营业务保持稳健增长态势，核心业务板块毛利率同比提升1.8个百分点，体现出产品结构的持续优化和规模效应的逐步释放。",
+        "公司核心产品包括HPLC高速电力线载波通信模块、双模（HPLC+RF）通信单元、智能电能表数据采集终端及能源管理综合系统。根据国家电网公开招标数据，公司产品市场占有率连续三年位居行业前三，HPLC模块在国网统标市场的份额稳定在25%以上。",
+        "报告期内完成的两项重大技术突破值得关注：一是新一代双模通信芯片DT7z的量产，该芯片同时支持HPLC和微功率无线RF双模通信，符合国家电网2023版技术标准，已通过中国电力科学研究院型式试验认证；二是面向低压台区智能融合终端的软件平台V3.0发布，集成边缘计算和AI分析能力，实现从数据采集到智能决策的闭环。",
+        "海外业务板块增速显著：东南亚地区通过泰国、越南的智能电表AMI项目落地，累计部署超过50万只智能终端；非洲市场与东非电力公司签署长期合作协议；拉美市场在巴西、哥伦比亚建立本地化运营团队。全年海外收入同比增长34%，收入占比从上年的7%提升至10%以上。",
+        "研发方面，公司全年研发投入4.2亿元，占营业收入的11.6%，较上年增加0.9个百分点。研发人员达到860人，占比超过公司总人数的40%。在芯片设计、通信协议、嵌入式软件和云端平台四大方向持续深耕，拥有授权发明专利287项、实用新型专利156项。",
+        "公司治理方面，董事会由9名董事组成，其中独立董事3名。监事会设监事3名。2023年度董事会共召开12次会议，审议通过重大事项35项。公司已建立完善的内部控制体系，经审计机构评估，内部控制有效性评价为良好。",
+        "2023年度利润分配预案：以总股本5.43亿股为基数，向全体股东每10股派发现金红利1.50元（含税），合计派发8,145万元，占当年归母净利润的26.3%。该分配预案已经董事会和监事会审议通过，尚需提交股东大会审议。",
+    ],
+    "603707": [
+        "健友生化制药股份有限公司（以下简称「公司」）是全球肝素产业链的龙头企业，主营业务涵盖肝素原料药、低分子肝素制剂及高端注射剂产品的研发、生产和销售。公司成立于1997年，2017年在上交所上市，经过二十余年的发展，已形成从粗品肝素钠到终端制剂产品的全产业链布局。",
+        "2023年度，公司实现营业收入约39.3亿元，归属于上市公司股东的净利润约5.7亿元。面对全球肝素市场周期性调整和价格波动，公司通过优化产品结构、扩大高端制剂出口等举措，成功对冲了原料药价格下行的影响，综合毛利率维持在48%以上的较高水平。",
+        "公司产品线覆盖三大板块：（1）标准肝素原料药，主要销往欧美大型制药企业，年收入约18亿元；（2）低分子肝素制剂，包括依诺肝素钠注射液、那屈肝素钙注射液等，年收入约15亿元；（3）高端注射剂出口，涵盖预灌封注射器及无菌粉针产品，年收入约6亿元。",
+        "制剂出口业务是公司最大的增长引擎。报告期内，依诺肝素钠注射液在美国市场持续放量，按处方量计跃居全美前三，市场份额突破15%。公司3条注射剂生产线顺利通过美国FDA现场检查（零483观察项），进一步夯实了高端制剂出海的基础。欧洲市场方面，那屈肝素钙在德国、法国的上市申请已获受理。",
+        "研发方面，公司全年研发投入3.8亿元，占营业收入的9.7%，聚焦三大方向：一是GLP-1类多肽原料药及制剂，目前已进入中试阶段，有望成为第二增长曲线；二是新型抗凝药物的研发，公司拥有自主知识产权的磺达肝癸钠仿制药已提交ANDA申请；三是生物类似药，注射用曲妥珠单抗的III期临床试验已接近尾声。",
+        "质量和合规方面，公司建立了完善的质量管理体系，通过了美国FDA、欧盟EDQM、巴西ANVISA等多国监管机构的认证。全年共接受17次国内外监管检查，未发生重大质量事故。公司严格执行cGMP标准，确保从原料到成品的全过程质量受控。",
+        "公司积极响应国家集中带量采购政策，主要产品依诺肝素钠注射液、那屈肝素钙注射液在中标集采区域实现了以价换量。尽管集采降价幅度较大，但通过规模效应和供应链优化，制剂业务的单位成本下降12%，有效维护了利润空间。",
+        "2023年度利润分配预案：以总股本15.72亿股为基数，向全体股东每10股派发现金红利2.00元（含税），合计派发3.14亿元，占当年归母净利润的55.1%。该分配预案已经董事会审议通过。",
+    ],
+    "600569": [
+        "安阳钢铁股份有限公司（以下简称「公司」）是河南省最大的钢铁联合企业，隶属于安钢集团，拥有从焦化、烧结、炼铁、炼钢到连铸、轧钢的完整长流程生产线，具备年产约1,000万吨钢的综合生产能力。公司主要产品涵盖宽厚板、热轧卷板、冷轧薄板、中厚板、高速线材、型钢等多个品类，广泛应用于建筑、机械制造、汽车、船舶、桥梁、压力容器等下游行业。",
+        "2023年度，受国内钢材市场价格持续走低和原材料成本高企的双重挤压，公司实现营业收入约421.5亿元，归属于上市公司股东的净利润约-12.8亿元。尽管行业整体处于周期底部，公司通过深入推进降本增效、优化产品结构和加快超低排放改造等多项举措，四季度经营性现金流已实现转正，生产经营呈现出筑底企稳的积极信号。",
+        "产品结构方面，公司持续推动「普转特、特转优」战略。2023年，高附加值品种钢占比达到38%，较上年提升5个百分点。其中，汽车用钢完成认证品种12个，供货量同比增长28%；桥梁钢先后中标川藏铁路、深中通道等国家级重大工程，公司品牌影响力进一步巩固。此外，容器板、高强结构板等优势品种的市场占有率稳居国内前三。",
+        "绿色低碳转型方面，公司积极响应国家「碳达峰、碳中和」战略，2023年累计投入环保改造资金超过25亿元。2号高炉超低排放改造项目顺利完工并通过河南省生态环境厅验收，公司整体通过环保绩效A级企业认定。在节能降碳方面，吨钢综合能耗同比下降3.2%，自发电比例提升至65%，余热余能回收利用率达到行业领先水平。",
+        "公司持续推进智能制造和数字化转型。报告期内，炼钢二车间智能集控中心投入使用，实现从铁水预处理到连铸的全流程远程集中管控；冷轧智慧物流系统上线运行，厂区内物流周转效率提升18%。此外，公司与北京科技大学、东北大学等科研院所建立了产学研深度合作关系，全年获得授权发明专利42项。",
+        "供应链方面，铁矿石采购坚持「长协+现货」双轨制，长协比例保持在70%以上，有效对冲矿价波动风险。焦炭自给率维持在85%，焦化副产品综合利用创效超过4亿元。合金、耐火材料等辅料实施集中采购，全年节约采购成本2.3亿元。公司原材料库存周转天数保持在合理区间，确保了生产的连续性。",
+        "2023年度，面对行业周期性低谷，公司采取了多项应对措施：一是大幅压缩非生产性支出，管理费用同比下降15%；二是优化融资结构，长期借款占比提升至60%，财务费用率降至1.8%；三是积极争取政策支持，获得环保超低排放改造专项补助1.2亿元、高新技术企业税收优惠2,800万元。",
+        "2023年度利润分配预案：鉴于2023年度亏损，公司拟不进行利润分配，不派发现金红利，不送红股，不以公积金转增股本。该预案已经董事会审议通过，尚需提交股东大会审议。公司管理层表示，将把有限资金优先用于环保改造和产品升级，为下一轮行业回升积蓄力量。",
+    ],
+}
+
+
 def generate_multicolumn(code: str, xbrl: dict):
     name = COMPANY_NAMES.get(code, code)
     sections = parse_xbrl_sections(xbrl["table"])
-    desc = COMPANY_LONG_DESC.get(code, COMPANY_SNIPPETS.get(code, ""))
-    snippet = COMPANY_SNIPPETS.get(code, "")
+    paragraphs = COMPANY_REPORT_BODY.get(code, [])
 
     # 按表名索引
     tables_by_name: dict[str, list[list[str]]] = {}
@@ -451,126 +705,75 @@ def generate_multicolumn(code: str, xbrl: dict):
     balance_rows = tables_by_name.get("资产负债表", [])
     cashflow_rows = tables_by_name.get("现金流量表", [])
 
-    # 构建 "关键财务指标" 摘要表
-    key_financial_rows = [["指标", "2023年", "2022年"]]
-    for r in income_rows:
-        if len(r) >= 3:
-            item = r[0]
-            if any(kw in item for kw in ["营业收入", "营业成本", "净利润"]):
-                key_financial_rows.append(r[:3])
-
     pdf = MultiColumnPDF(name, code)
 
     # ================================================================
-    # 第 1 页：两栏 — 左栏公司概述 + 右栏关键财务表
+    # 第 1 页起始：通栏标题 + 文字流排
     # ================================================================
-    pdf.add_page()
-    pdf.full_span_title(f"{name} 2023 年度财务报告摘要")
-    pdf.full_span_text("来源：上海证券交易所公开披露   |   发布时间：2024年4月   |   本期共 3 页")
-    pdf.ln(3)
+    pdf._new_page()
+    pdf.full_title(f"{name} 2023 年度报告")
+    pdf.full_subtitle("上海证券交易所公开披露  |  发表时间：2024年4月  |  证券代码：{0}.SH".format(code))
 
-    pdf.start_two_column_region()
+    # 左栏起：报告正文段落自然流排（左栏→右栏→翻页续）
+    pdf.flow_heading("一、公司概况与经营回顾", level=1)
+    for para in paragraphs[:4]:
+        pdf.flow_paragraph(para)
 
-    # 左栏：公司概述
-    pdf.left_title("一、公司概况")
-    pdf.left_body(desc, size=8)
-    pdf.ln(2)
-    pdf.left_title("二、主营业务分析")
-    pdf.left_body(
-        f"报告期内，公司主营业务稳步发展。{snippet}"
-        f"2023年度，公司继续加大研发投入力度，推进智能化、数字化转型。"
-        f"面对复杂多变的国内外经济形势，公司管理层审慎决策，"
-        f"在保持主营业务稳健增长的同时积极拓展新兴市场，"
-        f"资产负债结构持续优化，经营性现金流保持健康水平。"
-        f"公司治理方面，董事会、监事会依法合规运作，"
-        f"独立董事对公司重大事项发表了独立意见。"
-        f"2023年度利润分配预案已经董事会审议通过，"
-        f"拟向全体股东每10股派发现金红利。",
-        size=8,
-    )
+    # 关键财务数据小结表（通栏）
+    pdf.full_section_break("关键财务数据概览")
+    key_rows = [["指标", "2023年", "2022年", "同比变动"]]
+    for r in income_rows:
+        if len(r) >= 3:
+            item = r[0]
+            if any(kw in item for kw in ["营业收入", "营业成本", "净利润", "利润总额"]):
+                change = ""
+                if len(r) >= 4:
+                    change = r[3] if r[3] else ""
+                key_rows.append(r[:3] + [change])
+    # 补充资产负债率等
+    for r in balance_rows:
+        if len(r) >= 3 and "资产总计" in r[0]:
+            key_rows.append([r[0], r[1], r[2] if len(r) > 2 else ""])
 
-    # 右栏：关键财务数据表
-    pdf.right_title("三、关键财务数据")
-    pdf.right_table(key_financial_rows, max_rows=12)
-    pdf.ln(3)
-    pdf.right_title("四、业务亮点")
-    pdf.right_body(
-        f"> 全年新签合同金额同比增长超20%\n"
-        f"> 研发投入占比持续领先行业均值\n"
-        f"> 海外业务收入占比突破10%\n"
-        f"> 获得省部级科技进步奖2项\n"
-        f"> 新增专利授权32项\n"
-        f"> 资产负债率处于行业偏低水平\n"
-        f"> 经营性现金流连续三年为正\n"
-        f"> 信用评级维持AA+级",
-        size=8,
-    )
-
-    pdf.finish_two_column_page()
+    pdf.full_span_table("合并关键财务指标", key_rows, max_rows=15)
 
     # ================================================================
-    # 第 2 页：两栏 — 左栏利润表 + 右栏资产负债表
+    # 继续流排文字
     # ================================================================
-    pdf.add_page()
-    pdf.full_span_title(f"{name} — 合并财务报表（续）")
-    pdf.ln(2)
+    pdf.flow_heading("二、业务亮点与研发投入", level=1)
+    for para in paragraphs[4:6]:
+        pdf.flow_paragraph(para)
 
-    pdf.start_two_column_region()
-
-    # 左栏：利润表
+    # ================================================================
+    # 三大报表（通栏大表）
+    # ================================================================
     if income_rows:
-        pdf.left_title("合并利润表（摘要）")
-        inc_abbrev = _pick_key_rows(income_rows, 12)
-        pdf.left_table(inc_abbrev, max_rows=13)
+        pdf.full_section_break("合并利润表")
+        pdf.full_span_table("合并利润表（摘要）", _pick_key_rows(income_rows, 18), max_rows=20)
 
-    # 右栏：资产负债表
     if balance_rows:
-        pdf.right_title("合并资产负债表（摘要）")
-        bs_abbrev = _pick_key_rows(balance_rows, 18)
-        pdf.right_table(bs_abbrev, max_rows=19)
+        pdf.full_section_break("合并资产负债表")
+        pdf.full_span_table("合并资产负债表（摘要）", _pick_key_rows(balance_rows, 25), max_rows=27)
 
-    pdf.finish_two_column_page()
-
-    # ================================================================
-    # 第 3 页：两栏 — 左栏现金流量表 + 右栏财务附注
-    # ================================================================
-    pdf.add_page()
-    pdf.full_span_title(f"{name} — 现金流量及附注")
-    pdf.ln(2)
-
-    pdf.start_two_column_region()
-
-    # 左栏：现金流量表
     if cashflow_rows:
-        pdf.left_title("合并现金流量表（摘要）")
-        cf_abbrev = _pick_key_rows(cashflow_rows, 14)
-        pdf.left_table(cf_abbrev, max_rows=15)
+        pdf.full_section_break("合并现金流量表")
+        pdf.full_span_table("合并现金流量表（摘要）", _pick_key_rows(cashflow_rows, 18), max_rows=20)
 
-    # 右栏：附注说明
-    pdf.right_title("财务报表附注（摘要）")
-    pdf.right_body(
-        f"1. 编制基础\n"
-        f"本公司财务报表按照财政部颁布的《企业会计准则》编制。\n\n"
-        f"2. 重要会计政策\n"
-        f"（1）会计年度：公历1月1日至12月31日。\n"
-        f"（2）记账本位币：人民币。\n"
-        f"（3）应收账款坏账准备：按预期信用损失模型计提。\n"
-        f"（4）存货计价：按成本与可变现净值孰低计量。\n"
-        f"（5）固定资产折旧：按年限平均法计提。\n\n"
-        f"3. 税项\n"
-        f"适用企业所得税税率15%（高新技术企业）。\n\n"
-        f"4. 或有事项\n"
-        f"截至报告期末，无应披露的重大未决诉讼。\n\n"
-        f"5. 期后事项\n"
-        f"截至本报告签发日，无重大期后事项。\n\n"
-        f"6. 审计意见\n"
-        f"中正会计师事务所出具了标准无保留意见的审计报告。",
-        size=8,
-    )
+    # ================================================================
+    # 续排其余文字
+    # ================================================================
+    pdf.flow_heading("三、公司治理与内部控制", level=1)
+    for para in paragraphs[6:7]:
+        pdf.flow_paragraph(para)
 
-    pdf.finish_two_column_page()
+    pdf.flow_heading("四、利润分配预案", level=1)
+    for para in paragraphs[7:8]:
+        pdf.flow_paragraph(para)
 
-    out_path = MULTICOLUMN_DIR / f"{code}.pdf"
+    # 完成最后一页
+    pdf.finalize()
+
+    out_path = MULTICOLUMN_DIR / f"{code}_multi.pdf"
     out_path.parent.mkdir(parents=True, exist_ok=True)
     pdf.output(str(out_path))
     print(f"  MultiColumn PDF → {out_path}")
@@ -580,19 +783,20 @@ def generate_multicolumn(code: str, xbrl: dict):
 # Ground Truth 文件生成
 # ---------------------------------------------------------------------------
 
-def save_gt(code: str, xbrl: dict, scene_dir: Path):
+def save_gt(code: str, xbrl: dict, scene_dir: Path, suffix: str = ""):
     """为合成 PDF 保存 XBRL GT。
 
     格式与现有 eval_dataset 对齐：
-      {scene}/<code>_gt.json → {"xbrl_table": ..., "instances": ..., "company": ...}
+      {scene}/<code><suffix>_gt.json → {"xbrl_table": ..., "instances": ..., "company": ...}
     """
+    stem = f"{code}{suffix}"
     gt = {
         "company_code": code,
         "company_name": COMPANY_NAMES.get(code, code),
         "xbrl_table": xbrl["table"],
         "instances": xbrl.get("instances", []),
     }
-    out_path = scene_dir / f"{code}_gt.json"
+    out_path = scene_dir / f"{stem}_gt.json"
     out_path.write_text(json.dumps(gt, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"  GT saved → {out_path}")
 
@@ -600,8 +804,9 @@ def save_gt(code: str, xbrl: dict, scene_dir: Path):
     sel_path = scene_dir / "selection.json"
     entries = []
     for pdf_file in sorted(scene_dir.glob("*.pdf")):
-        c = pdf_file.stem
-        entries.append({"code": c, "file": pdf_file.name})
+        # 从文件名提取纯股票代码（去掉 _multi / _synth 等后缀）
+        code = re.sub(r"_(multi|synth)$", "", pdf_file.stem)
+        entries.append({"code": code, "file": pdf_file.name})
     sel_path.write_text(json.dumps(entries, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"  Selection → {sel_path}")
 
@@ -658,11 +863,11 @@ def main():
 
         # Borderless
         generate_borderless(code, xbrl)
-        save_gt(code, xbrl, BORDERLESS_DIR)
+        save_gt(code, xbrl, BORDERLESS_DIR, suffix="_synth")
 
         # Multi-column
         generate_multicolumn(code, xbrl)
-        save_gt(code, xbrl, MULTICOLUMN_DIR)
+        save_gt(code, xbrl, MULTICOLUMN_DIR, suffix="_multi")
 
     update_selection()
     print("\nDone: 3 companies × 2 scenes = 6 PDFs + GT")

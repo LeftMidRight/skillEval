@@ -3,7 +3,6 @@
   "title": "无边框表格",
   "source": "FinAR-Bench + 合成",
   "ground_truth": "XBRL",
-  "count": 5,
   "items": [
     {
       "code": "601555",

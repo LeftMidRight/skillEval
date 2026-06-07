@@ -1,12 +1,14 @@
-{
-  "scene": "synthetic_multicolumn",
-  "title": "多栏排版（合成）",
-  "source": "合成 (FinAR-Bench XBRL 反推)",
-  "ground_truth": "XBRL",
-  "count": 3,
-  "items": [
-    {"code": "600569", "file": "600569_multi.pdf", "note": "3 页两栏版式，栏间竖线分隔"},
-    {"code": "603421", "file": "603421_multi.pdf", "note": "3 页两栏版式，栏间竖线分隔"},
-    {"code": "603707", "file": "603707_multi.pdf", "note": "3 页两栏版式，栏间竖线分隔"}
-  ]
-}
+[
+  {
+    "code": "600569",
+    "file": "600569_multi.pdf"
+  },
+  {
+    "code": "603421",
+    "file": "603421_multi.pdf"
+  },
+  {
+    "code": "603707",
+    "file": "603707_multi.pdf"
+  }
+]
