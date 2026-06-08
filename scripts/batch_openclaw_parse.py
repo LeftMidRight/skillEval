@@ -44,10 +44,18 @@ TOS_PREFIX = "myEvalDataset"
 def pdf_path_to_url(pdf_path: str) -> str:
     """将本地 pdf_path 转为 TOS 可访问 URL。
 
-    data/eval_dataset/cross_page_tables/603256.pdf
-    → https://.../myEvalDataset/eval_dataset/cross_page_tables/603256.pdf
+    绝对路径如 D:\\Code\\bytedanceCamp\\data\\eval_dataset\\...\\603256.pdf
+    或相对路径如 data/eval_dataset/.../603256.pdf
+    → https://.../myEvalDataset/eval_dataset/.../603256.pdf
     """
-    relative = str(pdf_path).replace("\\", "/").removeprefix("data/")
+    p = Path(pdf_path)
+    # 找到 eval_dataset 这一段，取其后半部分作为相对路径
+    try:
+        idx = p.parts.index("eval_dataset")
+        relative = Path(*p.parts[idx:]).as_posix()
+    except ValueError:
+        # 兜底：尝试 removeprefix
+        relative = str(pdf_path).replace("\\", "/").removeprefix("data/")
     return f"{TOS_BASE}/{TOS_PREFIX}/{relative}"
 
 
